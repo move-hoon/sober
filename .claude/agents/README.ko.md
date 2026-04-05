@@ -12,7 +12,7 @@
 | 에이전트 | 모델 | 역할 | 도구 | 질문 |
 |---------|------|------|------|------|
 | `planner.md` | Sonnet 4.6 | 아키텍처 및 설계 결정 | Read, Glob, Grep (읽기 전용) | ≤3 (기본값 포함) |
-| `dplanner.md` | Sonnet 4.6 | 연구 기반 심층 계획 | sequential-thinking, perplexity, context7, Read, Glob, Grep | 무제한 |
+| `dplanner.md` | Sonnet 4.6 | 연구 기반 심층 계획 | sequential-thinking, perplexity, Read, Glob, Grep | 무제한 |
 | `builder.md` | Haiku 4.5 | 구현 (2-retry cap) | Read, Write, Edit, Bash, Glob, Grep | 없음 → 에스컬레이션 |
 | `reviewer.md` | Haiku 4.5 | 코드 검토 및 QA | Read, Glob, Grep (읽기 전용, 강제) | 없음 → 에스컬레이션 |
 
@@ -42,7 +42,7 @@
 **기능:**
 - `sequential-thinking`: 다단계 논리 검증
 - `perplexity`: 웹 연구 (블로그, 포럼, 최신 아티클)
-- `context7`: 라이브러리 문서 조회
+- 설치된 공식 Context7 Claude Code 통합을 통한 최신 라이브러리 문서 조회
 
 **출력 예산:** 최대 60줄 (코드 블록 제외). 출처 + 출처당 1줄 인사이트만.
 
@@ -154,7 +154,7 @@ flowchart TD
 | @planner와 @dplanner에 Sonnet 4.6 사용 | 아키텍처 결정은 추론 능력 필요. Pro Plan에서 Sonnet 4.6가 Opus 4.6보다 가성비 우수 |
 | @builder 2-retry cap | Quota 소진 방지. 2회 실패 → Sonnet 4.6/Opus 4.6으로 에스컬레이션 또는 @planner로 재설계 |
 | @reviewer 읽기 전용 강제 | Hook 기반 차단(`readonly-check.sh`). 검토 중 실수로 수정하는 것 방지 |
-| @dplanner에 MCP 도구 제공 | 연구가 많은 작업은 MCP 오버헤드 정당화 가능. `sequential-thinking` + `perplexity` + `context7`로 실패 없는 계획 가능 |
+| @dplanner에 연구 도구 + 공식 문서 통합 제공 | 연구가 많은 작업은 더 깊은 계획이 필요합니다. `sequential-thinking` + `perplexity`로 추론과 웹 조사를 처리하고, 최신 라이브러리 문서는 공식 Context7이 설치된 경우 사용할 수 있습니다 |
 | 에이전트별 출력 예산 | Output은 Input의 5배 비용 (API 가격). 엄격한 예산: builder 5줄, reviewer 1줄 PASS / 30줄 FAIL, dplanner 60줄, planner 1문장/작업 |
 | @builder 원자적 롤백 | `~/.claude/scripts/snapshot.sh`가 depth guard + 라벨 확인 포함 `git stash` 처리. 무관한 사용자 stash pop 방지. 실패 시 `pop` (또는 clean tree에서 `git checkout .`) → 즉시 에스컬레이션 가능한 깨끗한 상태. 실패당 2-4 메시지 절약은 추정치이며, API 비용은 0 |
 

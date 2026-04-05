@@ -15,7 +15,7 @@ Contains slash command definitions for common workflows.
 | `do-sonnet.md` | Execute with Sonnet | context: fork, model: sonnet |
 | `do-opus.md` | Execute with Opus | context: fork, model: opus |
 | `plan.md` | Complex tasks | @planner → @builder chain |
-| `dplan.md` | Deep Planning | @dplanner (Sequential Thinking + Perplexity + Context7) |
+| `dplan.md` | Deep Planning | @dplanner (Sequential Thinking + Perplexity + official Context7 when installed) |
 | `review.md` | Code review | Read-only, categories |
 | `learn.md` | Capture patterns | Auto-extract or explicit |
 | `session-save.md` | Save state | Secret scrubbing |
@@ -23,7 +23,7 @@ Contains slash command definitions for common workflows.
 | `load-context.md` | Load context | Read tool, cost economy |
 | `compact-phase.md` | Strategic compact | Phase-aware pruning |
 | `watch.md` | tmux monitoring | Zero message cost |
-| `llms-txt.md` | LLM Documentation | Fetch /llms.txt from URLs |
+| `llms-txt.md` | LLM Documentation | Fetch raw /llms.txt from URLs |
 | `analyze-failures.md` | Analyze tool errors | Hybrid learning (log + analyze) |
 
 ## Command Categories
@@ -64,7 +64,7 @@ Contains slash command definitions for common workflows.
 | Command | When to Use | Resource Usage |
 |---------|-------------|----------------|
 | `/watch` | Monitor long-running processes | Local tmux (zero API usage) |
-| `/llms-txt` | Fetch LLM-optimized documentation | Minimal (WebFetch) |
+| `/llms-txt` | Fetch raw LLM-optimized documentation | Minimal (WebFetch) |
 
 ## Workflow Examples
 
@@ -102,7 +102,7 @@ Contains slash command definitions for common workflows.
 # 3. Implement based on research findings
 # (Use /plan or /do based on complexity)
 ```
-**Quota:** High (Sonnet 4.6 + Sequential Thinking + Perplexity + Context7)
+**Quota:** High (Sonnet 4.6 + Sequential Thinking + Perplexity + official Context7 when installed)
 
 ### Debugging & Learning
 ```bash
@@ -144,7 +144,7 @@ Contains slash command definitions for common workflows.
 | **Use Case** | Simple tasks | Complex logic | Critical decisions | Multi-file features | Unknown unknowns |
 | **Files Affected** | 1-3 | 1-3 | Any | 5+ | Any |
 | **Questions** | No | No | No | ≤3 (with defaults) | Unlimited |
-| **Research Tools** | No | No | No | No | Yes (Perplexity, Context7) |
+| **Research Tools** | No | No | No | No | Yes (Perplexity + official Context7 when installed) |
 
 **Decision Tree:**
 ```

@@ -49,7 +49,8 @@ Pro Plan constraints. Every message = quota. Optimize for Pass@1.
 | Implementation | @builder | Haiku | None → Escalate |
 | Quality Review | @reviewer | Haiku | None → Escalate |
 
-@dplanner tools: `sequential-thinking`, `perplexity`, `context7`
+@dplanner tools: `sequential-thinking`, `perplexity`, `Read`, `Glob`, `Grep`
+Current library docs can be handled by the official Context7 Claude Code integration when installed.
 
 ## DEFAULT WORKFLOW
 - Simple (1-3 files): `/do` — batch plan+build+verify in one shot

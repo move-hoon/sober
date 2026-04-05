@@ -28,7 +28,7 @@ Instead of loading extensive documentation every time, Claude starts with only t
 
 | Skill | Purpose | Key Benefit |
 | :--- | :--- | :--- |
-| `cli-wrappers` | Replaces heavy MCP servers with slim CLI patterns. | Significantly reduces output tokens. |
+| `cli-patterns` | Replaces heavy MCP servers with slim CLI patterns. | Significantly reduces output tokens. |
 | `learned` | Stores project-specific patterns via `/learn`. | Prevents rework & repeat questions. |
 
 ## Adding a Custom Skill

@@ -12,7 +12,7 @@ Contains sub-agent definitions for role-based task delegation with model optimiz
 | Agent | Model | Role | Tools | Questions |
 |-------|-------|------|-------|-----------|
 | `planner.md` | Sonnet 4.6 | Architecture & design decisions | Read, Glob, Grep (read-only) | ≤3 (with defaults) |
-| `dplanner.md` | Sonnet 4.6 | Deep planning with research | sequential-thinking, perplexity, context7, Read, Glob, Grep | Unlimited |
+| `dplanner.md` | Sonnet 4.6 | Deep planning with research | sequential-thinking, perplexity, Read, Glob, Grep | Unlimited |
 | `builder.md` | Haiku 4.5 | Implementation (2-retry cap) | Read, Write, Edit, Bash, Glob, Grep | None → Escalate |
 | `reviewer.md` | Haiku 4.5 | Code review & QA | Read, Glob, Grep (read-only, enforced) | None → Escalate |
 
@@ -42,7 +42,7 @@ Contains sub-agent definitions for role-based task delegation with model optimiz
 **Capabilities:**
 - `sequential-thinking`: Multi-step logic verification
 - `perplexity`: Web research (blogs, forums, latest articles)
-- `context7`: Library documentation lookup
+- Current library docs via the official Context7 Claude Code integration when installed
 
 **Output Budget:** Max 60 lines (code blocks excluded). Cite source + 1-line insight per source.
 
@@ -154,7 +154,7 @@ flowchart TD
 | Sonnet 4.6 for @planner and @dplanner | Architecture decisions need reasoning capability. Sonnet 4.6 balances cost/performance better than Opus 4.6 on Pro Plan |
 | @builder 2-retry cap | Prevents quota drain. Failed twice → Escalate to Sonnet 4.6/Opus 4.6 or @planner for re-design |
 | @reviewer read-only enforcement | Hook-based blocking (`readonly-check.sh`). Prevents accidental modifications during review |
-| @dplanner with MCP tools | Research-heavy tasks justify MCP overhead. `sequential-thinking` + `perplexity` + `context7` enable fail-proof planning |
+| @dplanner with research tools + official docs integration | Research-heavy tasks justify deeper planning. `sequential-thinking` + `perplexity` cover reasoning and web research, while current library docs can use official Context7 when installed |
 | Output Budget per agent | Output costs 5x Input (API pricing). Strict budgets: builder 5 lines, reviewer 1 line PASS / 30 lines FAIL, dplanner 60 lines, planner 1 sentence/task |
 | @builder atomic rollback | `~/.claude/scripts/snapshot.sh` handles `git stash` with depth guard + label check before `/do` execution. Prevents popping unrelated user stashes. Failure triggers `pop` (or `git checkout .` on clean tree) → clean state for immediate escalation. Estimated savings: 2-4 messages per failure, zero API cost |
 

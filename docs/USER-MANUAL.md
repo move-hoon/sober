@@ -30,6 +30,29 @@ Result interpretation:
    /load-context backend
    ```
 4. Start execution with `/do` for the first concrete task.
+5. (Optional) If you want current official library docs in future sessions:
+   ```bash
+   cpmm setup
+   ```
+
+In interactive mode, `cpmm setup` can offer the recommended Context7 flow.
+
+Official manual setup:
+
+```bash
+npm install -g ctx7
+ctx7 setup --cli --claude
+```
+
+After setup, official Context7 handles current library doc lookup. Use `/llms-txt` only when you explicitly want raw `/llms.txt` content or a direct docs URL.
+
+Recommended verification:
+
+```bash
+command -v ctx7
+ctx7 --version
+cpmm doctor
+```
 
 ## 2. Command Router (10-Second Choice)
 
@@ -38,7 +61,7 @@ Result interpretation:
 | Small, clear task (1-3 files) | `/do` | `/do Fix null check in user service and add minimal test.` |
 | Multi-file feature (4+ files) or unclear structure | `/plan` | `/plan Add JWT refresh flow with rotation.` |
 | Same as above, but plan only | `/plan --no-build` | `/plan --no-build Propose DB migration strategy for billing.` |
-| Need deep research (Sequential Thinking + Perplexity + Context7) | `/dplan` | `/dplan Analyze race conditions in payment retries.` |
+| Need deep research (Sequential Thinking + Perplexity + official Context7 when installed) | `/dplan` | `/dplan Analyze race conditions in payment retries.` |
 | `/do` failed repeatedly on logic complexity | `/do-sonnet` | `/do-sonnet Implement conflict-safe cache invalidation.` |
 | Sonnet still fails or critical decision | `/do-opus` | `/do-opus Resolve deadlock risk in transaction coordinator.` |
 | Review changes before merge | `/review` | `/review src/auth/` |
@@ -57,7 +80,7 @@ Result interpretation:
 | Capture a specific pattern | `/learn` | `/learn "Use DTO mappers for API responses"` |
 | Show learned patterns | `/learn --show` | `/learn --show` |
 | Analyze recurring tool failures (default: last 50) | `/analyze-failures` | `/analyze-failures 100` |
-| Fetch llms.txt docs (when Context7 lacks coverage) | `/llms-txt` | `/llms-txt nextjs` |
+| Fetch raw llms.txt docs or direct docs URLs | `/llms-txt` | `/llms-txt nextjs` |
 
 > **Notes:**
 > - `/compact-phase` does **not** compact automatically. It outputs a `/compact [instructions]` command — copy and run it yourself.
@@ -265,9 +288,11 @@ Use when: edit/grep/tool failures are frequent.
 
 Then convert stable lessons into explicit `/learn` patterns.
 
-### Scenario 13: Need Fast Official Library Docs
+### Scenario 13: Need Raw llms.txt Docs
 
-Use when: syntax/API uncertainty during implementation.
+Use when: you explicitly want raw `/llms.txt` content or a direct docs URL.
+
+For current official library docs, ask naturally after the official Context7 setup and let official Context7 handle the lookup.
 
 ```bash
 /llms-txt nextjs

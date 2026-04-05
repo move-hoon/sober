@@ -1,6 +1,6 @@
 ---
 name: llms-txt
-description: Fetch llms.txt documentation for a library. Use when Context7 doesn't cover a library.
+description: Fetch raw llms.txt documentation for a library or direct URL. Use when you explicitly want raw /llms.txt content or when official Context7 is unavailable.
 argument-hint: nextjs | prisma | supabase | [custom-url]
 allowed-tools: Bash(curl:*)
 ---
@@ -38,9 +38,9 @@ curl -s https://nextjs.org/llms.txt | head -200
 ```
 
 ## When to Use
-- Context7 MCP가 해당 라이브러리를 찾지 못할 때
-- 빠른 원샷 문법 확인이 필요할 때
-- 최신 API 문서가 필요할 때
+- You explicitly want the raw `/llms.txt` file
+- You want a direct URL-based docs fetch
+- You need a quick one-shot raw-doc pull instead of official Context7
 
 ## Examples
 ```

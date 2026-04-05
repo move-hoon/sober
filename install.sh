@@ -52,6 +52,215 @@ if [ -f "$HOME/.claude/settings.json" ] && grep -q "rtk-rewrite.sh" "$HOME/.clau
   HAS_EXISTING_RTK_HOOK=true
 fi
 
+cleanup_managed_claude_json() {
+  local target="$1"
+  local status=0
+
+  [ -f "$target" ] || return 0
+
+  set +e
+  node - "$target" <<'NODE'
+const fs = require("node:fs");
+
+const target = process.argv[2];
+const data = JSON.parse(fs.readFileSync(target, "utf8"));
+const servers = data && typeof data === "object" ? data.mcpServers : null;
+
+if (servers && Object.prototype.hasOwnProperty.call(servers, "context7")) {
+  delete servers.context7;
+  fs.writeFileSync(target, `${JSON.stringify(data, null, 4)}\n`);
+  process.exit(10);
+}
+NODE
+  status=$?
+  set -e
+
+  if [ "$status" -eq 0 ]; then
+    return 0
+  fi
+  if [ "$status" -eq 10 ]; then
+    echo "✅ Removed legacy Context7 MCP from ~/.claude.json"
+    return 0
+  fi
+
+  return "$status"
+}
+
+user_mcp_contains_legacy_context7() {
+  local target="$1"
+
+  [ -f "$target" ] || return 1
+
+  node - "$target" <<'NODE'
+const fs = require("node:fs");
+
+const target = process.argv[2];
+const data = JSON.parse(fs.readFileSync(target, "utf8"));
+const hasLegacyContext7 = Boolean(
+  data &&
+  typeof data === "object" &&
+  data.mcpServers &&
+  Object.prototype.hasOwnProperty.call(data.mcpServers, "context7")
+);
+
+process.exit(hasLegacyContext7 ? 0 : 1);
+NODE
+}
+
+context7_cli_installed() {
+  command -v ctx7 >/dev/null 2>&1
+}
+
+context7_global_bin_path() {
+  if command -v ctx7 >/dev/null 2>&1; then
+    command -v ctx7
+    return 0
+  fi
+
+  if command -v npm >/dev/null 2>&1; then
+    NPM_PREFIX=$(npm prefix -g 2>/dev/null || true)
+    if [ -n "$NPM_PREFIX" ] && [ -x "$NPM_PREFIX/bin/ctx7" ]; then
+      printf '%s\n' "$NPM_PREFIX/bin/ctx7"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+context7_official_skill_installed() {
+  [ -f "$HOME/.claude/skills/find-docs/SKILL.md" ]
+}
+
+context7_official_rule_installed() {
+  [ -f "$HOME/.claude/rules/context7.md" ]
+}
+
+context7_official_integration_installed() {
+  context7_official_skill_installed && context7_official_rule_installed
+}
+
+print_context7_manual_hints() {
+  echo "   Re-run cpmm setup in an interactive terminal to opt in, or run the official commands directly:"
+  echo "   npm install -g ctx7"
+  echo "   ctx7 setup --cli --claude"
+}
+
+run_context7_global_install() {
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "⚠️  Skipping Context7 global install (npm not found)."
+    print_context7_manual_hints
+    return 1
+  fi
+
+  echo ""
+  echo "📚 Context7 CLI Global Install"
+  echo "  $ npm install -g ctx7"
+
+  if npm install -g ctx7; then
+    CONTEXT7_BIN=$(context7_global_bin_path || true)
+    if [ -n "${CONTEXT7_BIN:-}" ]; then
+      echo "✅ Context7 CLI installed"
+      CONTEXT7_VERSION=$("$CONTEXT7_BIN" --version 2>/dev/null | head -1 || true)
+      [ -n "$CONTEXT7_VERSION" ] && echo "   Version: $CONTEXT7_VERSION"
+      return 0
+    fi
+
+    echo "⚠️  Context7 CLI installed but is not visible on PATH in this shell."
+    echo "   A later step will use the resolved global binary path directly."
+    return 0
+  fi
+
+  echo "⚠️  Context7 global install did not complete."
+  print_context7_manual_hints
+  return 1
+}
+
+run_context7_official_setup() {
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "⚠️  Skipping official Context7 setup (npm not found)."
+    print_context7_manual_hints
+    return 1
+  fi
+
+  if ! context7_global_bin_path >/dev/null 2>&1; then
+    if ! run_context7_global_install; then
+      return 1
+    fi
+  fi
+
+  CONTEXT7_BIN=$(context7_global_bin_path || true)
+  if [ -z "${CONTEXT7_BIN:-}" ]; then
+    echo "⚠️  Context7 CLI binary could not be resolved after install."
+    print_context7_manual_hints
+    return 1
+  fi
+
+  echo ""
+  echo "📚 Context7 Official CLI + Skills Setup"
+  echo "   This runs the official Context7 Claude Code setup."
+  echo "  $ $CONTEXT7_BIN setup --cli --claude"
+
+  if "$CONTEXT7_BIN" setup --cli --claude; then
+    echo "✅ Context7 official CLI + Skills setup complete"
+    return 0
+  fi
+
+  echo "⚠️  Official Context7 setup did not complete."
+  print_context7_manual_hints
+  return 1
+}
+
+offer_context7_setup() {
+  local choice="${CPMM_CONTEXT7_SETUP_CHOICE:-}"
+
+  if context7_cli_installed && context7_official_integration_installed; then
+    echo ""
+    echo "📚 Context7 Setup"
+    echo "   Context7 CLI and official Claude integration are already installed."
+    return 0
+  fi
+
+  if [ -z "$choice" ] && [ ! -t 0 ]; then
+    echo ""
+    echo "📚 Context7 Setup (Optional)"
+    echo "   Skipped in non-interactive mode."
+    print_context7_manual_hints
+    return 0
+  fi
+
+  case "$choice" in
+    official-setup|skip) ;;
+    *) choice="" ;;
+  esac
+
+  if [ -z "$choice" ]; then
+    echo ""
+    echo "📚 Context7 Setup (Optional)"
+    echo "   Install ctx7 globally and run the official Context7 Claude Code setup?"
+    echo "   1) Yes, run npm install -g ctx7 + ctx7 setup --cli --claude (Recommended)"
+    echo "   2) Skip for now (default)"
+    echo -n "   Select [1-2]: "
+    read -r CONTEXT7_CHOICE < /dev/tty || CONTEXT7_CHOICE="3"
+
+    case $CONTEXT7_CHOICE in
+      1) choice="official-setup" ;;
+      *) choice="skip" ;;
+    esac
+  fi
+
+  case "$choice" in
+    official-setup)
+      run_context7_official_setup
+      ;;
+    *)
+      echo ""
+      echo "⚠️  Skipping Context7 setup for now."
+      print_context7_manual_hints
+      ;;
+  esac
+}
+
 if [ "$IS_UPDATE" = false ] && [ -d "$HOME/.claude" ]; then
   if [ -d "$HOME/.claude.pre-cpmm" ]; then
     echo "⚠️  ~/.claude.pre-cpmm already exists, skipping backup."
@@ -131,11 +340,13 @@ done
 
 shopt -u nullglob
 
-# cli-wrappers/ and scripts/ — fully CPMM managed: rm-rf to remove stale files
-if [ -d "$SCRIPT_DIR/.claude/skills/cli-wrappers" ]; then
-  rm -rf "$HOME/.claude/skills/cli-wrappers"
-  cp -R "$SCRIPT_DIR/.claude/skills/cli-wrappers" "$HOME/.claude/skills/"
-fi
+# managed skills/ and scripts/ — fully CPMM managed: rm-rf to remove stale files
+for managed_skill in cli-patterns; do
+  if [ -d "$SCRIPT_DIR/.claude/skills/$managed_skill" ]; then
+    rm -rf "$HOME/.claude/skills/$managed_skill"
+    cp -R "$SCRIPT_DIR/.claude/skills/$managed_skill" "$HOME/.claude/skills/"
+  fi
+done
 # sessions/ dir created above; example files stay in repo only (not installed)
 if [ -d "$SCRIPT_DIR/scripts" ]; then
   rm -rf "$HOME/.claude/scripts"
@@ -153,21 +364,33 @@ if [ -f "$SCRIPT_DIR/.claude.json" ]; then
       cp "$HOME/.claude.json" "$HOME/.claude.json.bak"
     fi
     cp "$SCRIPT_DIR/.claude.json" "$HOME/.claude.json"
-    echo "✅ Installed .claude.json to ~/.claude.json (User Scope)"
+    echo "✅ Installed managed ~/.claude.json"
   elif [ ! -f "$HOME/.claude.json" ]; then
     cp "$SCRIPT_DIR/.claude.json" "$HOME/.claude.json"
     echo "✅ Restored missing ~/.claude.json from repository template"
   fi
 
-  # Fresh install: enforce symlink. Update: restore only when missing (do not overwrite existing file/link).
-  if [ "$IS_UPDATE" = false ]; then
-    if [ ! -L "$HOME/.mcp.json" ] || [ "$(readlink "$HOME/.mcp.json" 2>/dev/null)" != "$HOME/.claude.json" ]; then
+  cleanup_managed_claude_json "$HOME/.claude.json"
+
+  # ~/.claude.json is CPMM-managed. Regular-file ~/.mcp.json is user-managed.
+  if [ -L "$HOME/.mcp.json" ]; then
+    if [ "$(readlink "$HOME/.mcp.json" 2>/dev/null)" != "$HOME/.claude.json" ]; then
       ln -sf "$HOME/.claude.json" "$HOME/.mcp.json"
-      echo "✅ Ensured .mcp.json → .claude.json symlink"
+      echo "✅ Ensured managed .mcp.json → .claude.json symlink"
     fi
-  elif [ ! -e "$HOME/.mcp.json" ] && [ ! -L "$HOME/.mcp.json" ]; then
+  elif [ -f "$HOME/.mcp.json" ]; then
+    echo "⚠️  Leaving regular ~/.mcp.json untouched (user-managed file)."
+    if user_mcp_contains_legacy_context7 "$HOME/.mcp.json"; then
+      echo "   Detected legacy Context7 MCP in ~/.mcp.json."
+      echo "   Remove it manually if you no longer want the legacy MCP path."
+    fi
+  else
     ln -s "$HOME/.claude.json" "$HOME/.mcp.json"
-    echo "✅ Restored missing .mcp.json → .claude.json symlink"
+    if [ "$IS_UPDATE" = true ]; then
+      echo "✅ Restored missing .mcp.json → .claude.json symlink"
+    else
+      echo "✅ Created .mcp.json → .claude.json symlink"
+    fi
   fi
 fi
 
@@ -250,6 +473,8 @@ LANGEOF
   fi
 fi
 
+offer_context7_setup
+
 # EDGE CASE #9: guard find against missing dir (scripts/ may not exist on minimal installs)
 # Make scripts executable (Recursive)
 if [ -d "$HOME/.claude/scripts" ]; then
@@ -288,8 +513,21 @@ echo "  > /dplan Analyze complex architecture"
 echo "  > /do Implement the login page"
 echo ""
 echo "Dependency Check:"
-echo "  cpmm setup       # install missing deps (jq, mgrep, tmux) + attempt optional RTK install"
+echo "  cpmm setup       # install missing deps (jq, mgrep, tmux) + offer ctx7 install + official Context7/RTK setup"
 echo "  cpmm doctor      # check status only"
+echo ""
+echo "Context7 (Optional Official Integration):"
+if context7_official_integration_installed; then
+  echo "  Installed: official Context7 Claude integration"
+else
+  echo "  Re-run cpmm setup in an interactive terminal to opt in"
+fi
+if context7_cli_installed; then
+  echo "  CLI: ctx7 ($(ctx7 --version 2>/dev/null | head -1 || echo 'installed'))"
+else
+  echo "  Manual CLI install: npm install -g ctx7"
+fi
+echo "  Manual official setup: ctx7 setup --cli --claude"
 echo ""
 if command -v rtk >/dev/null 2>&1; then
   echo "RTK (Optional Integration):"

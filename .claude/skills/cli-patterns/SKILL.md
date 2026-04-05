@@ -1,12 +1,13 @@
 ---
-name: cli-wrappers
-description: Use CLI tools instead of MCP to reduce cost. Provides JSON output patterns for gh, mgrep, psql, etc.
+name: cli-patterns
+description: Use token-efficient CLI patterns instead of verbose MCP output when direct shell tools are enough. Provides JSON or compact-output conventions for gh, mgrep, psql, and similar tools.
 ---
 
-# CLI Wrappers Skill
+# CLI Patterns Skill
 
 ## Purpose
-Replace MCPs with CLI. ALWAYS use JSON output + jq.
+Prefer compact, stable CLI output over verbose MCP output when direct shell tools are enough.
+Use JSON + jq when a tool supports it, and otherwise use the smallest practical text or CSV output mode.
 
 ## GitHub (gh)
 ```bash

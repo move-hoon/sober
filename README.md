@@ -16,7 +16,7 @@ CPMM helps Pro users complete more verified tasks before reset through model rou
 
 > **Already installed? Start here: [User Guide](docs/USER-MANUAL.md)**
 >
-> **New in v1.3.1:** `cpmm setup` now restores the managed RTK hook order and timeout for users who already enabled RTK.
+> **Context7 update:** `cpmm setup` can now install `ctx7` globally and then run the official Context7 Claude Code setup, while keeping `/llms-txt` as an explicit raw-doc fallback.
 
 ---
 
@@ -52,22 +52,38 @@ cpmm setup
 cpmm doctor
 ```
 
-> **v1.3.1 note:** `cpmm setup` still attempts RTK installation when supported. RTK activation remains opt-in, but once enabled CPMM now restores the managed hook order and timeout automatically.
+### 4. Optional: Current Library Docs Setup
+
+During interactive `cpmm setup`, CPMM can now offer the full recommended Context7 path as an opt-in flow.
+
+Official manual setup:
+```bash
+npm install -g ctx7
+ctx7 setup --cli --claude
+```
+
+- CPMM does not treat Context7 as a default MCP path.
+- After official setup, Context7's own docs integration handles current library doc lookups.
+- Use `/llms-txt` only when you explicitly want raw `/llms.txt` content or a URL-based raw-doc fetch.
+
+> **Setup note:** `cpmm setup` still attempts RTK installation when supported. RTK activation remains opt-in, and Context7 opt-in now installs the `ctx7` CLI plus the official Claude Code integration.
 
 Dependency policy:
 - `required`: `jq`, `mgrep`, `tmux`
+- `optional` (interactive opt-in): `ctx7` + official Context7 Claude integration
 - `optional` (auto-install attempt): `rtk`
 - `optional` (check only): `claude` (assumed pre-installed)
 - auto-install paths by tool:
   - `mgrep`: `npm`
+  - `ctx7`: `npm` + `ctx7 setup --cli --claude` (interactive opt-in via `cpmm setup`)
   - `rtk`: `brew` or upstream `curl` installer
   - `jq`, `tmux`: `brew` (macOS) or Linux package managers `apt-get`, `dnf`, `pacman`, `apk`
 - on macOS without Homebrew, setup prints the Homebrew install command
 
-### 4. Customization & Update Policy
+### 5. Customization & Update Policy
 
-- `cpmm setup` installs missing dependencies, then configures CPMM (copies config files, language selection, Perplexity setup).
-- `cpmm doctor` checks dependency status and RTK hook health without modifying anything.
+- `cpmm setup` installs missing dependencies, then configures CPMM (copies config files, language selection, Perplexity setup, optional `ctx7` install + official Context7 setup, managed config cleanup).
+- `cpmm doctor` checks dependency status, Context7 status, and RTK hook health without modifying anything.
 - Re-running `cpmm setup` replaces CPMM-managed files with the latest version while preserving user data.
 
 ```text
@@ -76,7 +92,7 @@ Dependency policy:
   ├── commands/          🔄 Replaced on update
   ├── contexts/          🔄 Replaced on update
   ├── scripts/           🔄 Replaced on update
-  ├── skills/cli-wrappers/ 🔄 Replaced on update
+  ├── skills/cli-patterns/ 🔄 Replaced on update
   ├── rules/*.md         🔄 Replaced on update
   ├── settings.json      🔄 Replaced on update
   ├── settings.local.json  ✋ User-owned — preserved
@@ -98,10 +114,15 @@ Dependency policy:
 > 1. Global customization generally goes in `settings.local.json`. `settings.json` is CPMM-managed and overwritten on update; if you opt into RTK or other third-party hooks there, re-check them after updates.
 > 2. Custom commands/rules go in project `.claude/` — global `commands/` is managed by CPMM.
 
+Managed config boundary:
+- `~/.claude.json` is CPMM-managed and may be cleaned on update.
+- Regular-file `~/.mcp.json` is user-owned and CPMM leaves it untouched.
+- Symlinked `~/.mcp.json` is treated as CPMM-managed compatibility glue.
+
 Project initialization tip:
 - Before running `claude`, initialize your project with templates in `project-templates/` (not copied into `~/.claude`).
 
-### 5. Bash Command-Output Filtering (RTK)
+### 6. Bash Command-Output Filtering (RTK)
 
 CPMM supports RTK as an **optional Bash command-output filtering layer** for Bash-heavy workflows. `cpmm setup` attempts to install the RTK binary, but CPMM does **not** enable the RTK hook by default.
 
@@ -139,13 +160,20 @@ Rollback:
 rtk init -g --uninstall
 ```
 
-### 6. Advanced (Optional)
+### 7. Advanced (Optional)
 <details>
 <summary>Perplexity, language, manual install</summary>
 
-**Perplexity/Language setup (not required):**
-- Perplexity is used for web research in `/dplan`. Without it, `/dplan` still works via Sequential Thinking + Context7. All other features are unrelated to Perplexity.
+**Perplexity/Language/Context7 setup (not required):**
+- Perplexity is used for web research in `/dplan`. Without it, `/dplan` still works via Sequential Thinking, and current library docs can use official Context7 when installed. All other features are unrelated to Perplexity.
 - On fresh interactive installs, `cpmm setup` asks for output language and Perplexity API key.
+- `cpmm setup` can also offer the recommended Context7 flow: global `ctx7` install followed by official Claude Code setup.
+- For manual verification, use:
+  ```bash
+  command -v ctx7
+  ctx7 --version
+  cpmm doctor
+  ```
 - English (default): no file needed; remove `~/.claude/rules/language.md` if it exists.
 - Non-English: create `~/.claude/rules/language.md` with your preferred language.
 - To configure Perplexity manually, add this under `mcpServers` in `~/.claude.json`:
@@ -273,7 +301,7 @@ Full command list for more sophisticated tasks or session management.
 | Command | Description | Recommended Situation |
 | :--- | :--- | :--- |
 | **🧠 Deep Execution** | | |
-| `/dplan [task]` | **Sonnet 4.6** + Perplexity, Sequential Thinking, Context7 | Library comparison, latest tech research (Deep Research) |
+| `/dplan [task]` | **Sonnet 4.6** + Perplexity, Sequential Thinking, official Context7 when installed | Library comparison, latest tech research (Deep Research) |
 | `/do-sonnet` | Execute directly with **Sonnet 4.6** | Manual escalation when Haiku 4.5 keeps failing |
 | `/do-opus` | Execute directly with **Opus 4.6** | Resolving extremely complex problems (Cost caution) |
 | **💾 Session/Context** | | |
@@ -285,7 +313,7 @@ Full command list for more sophisticated tasks or session management.
 | `/learn` | Learn and save patterns | Registering frequently recurring errors or preferred styles |
 | `/analyze-failures` | Analyze error logs | Identifying causes of recurring errors |
 | `/watch` | Process monitoring (tmux) | Observing long-running builds/tests |
-| `/llms-txt` | Fetch documentation | Loading official library docs in LLM format |
+| `/llms-txt` | Fetch raw docs | Loading raw `/llms.txt` content or a direct docs URL |
 
 </details>
 
@@ -324,7 +352,7 @@ This project provides detailed documentation for each component. Refer to the li
 | **🕹️ Commands** | Usage of 14 commands including /plan, /do, /review | [📂 **Commands Guide**](.claude/commands/README.md) |
 | **🪝 Hooks** | Logic of 11 automation scripts including Pre-check, Auto-format | [📂 **Hooks Guide**](scripts/hooks/README.md) |
 | **📏 Rules** | Policies for Security, Code Style, Critical Actions | [📂 **Rules Guide**](.claude/rules/README.md) |
-| **🧠 Skills** | Technical specifications for tools like CLI Wrappers | [📂 **Skills Guide**](.claude/skills/README.md) |
+| **🧠 Skills** | Technical specifications for tools like CLI Patterns | [📂 **Skills Guide**](.claude/skills/README.md) |
 | **🔧 Contexts** | Context templates for Backend/Frontend projects | [📂 **Contexts Guide**](.claude/contexts/README.md) |
 | **💾 Sessions** | Structure for session summary storage and management | [📂 **Sessions Guide**](.claude/sessions/README.md) |
 | **🛠️ Scripts** | Collection of general-purpose scripts for Verify, Build, Test | [📂 **Scripts Guide**](scripts/README.md) |
@@ -341,7 +369,7 @@ This project provides detailed documentation for each component. Refer to the li
 
 ```text
 claude-pro-minmax
-├── .claude.json                # Global MCP Settings (User Scope)
+├── .claude.json                # Managed global MCP settings
 ├── .claudeignore               # Files excluded from Claude's context
 ├── .gitignore                  # Git ignore rules
 ├── CONTRIBUTING.md             # Contribution guide
@@ -377,13 +405,13 @@ claude-pro-minmax
 │   │   ├── load-context.md     # Load pre-defined context templates
 │   │   ├── learn.md            # Save new patterns to memory
 │   │   ├── analyze-failures.md # Analyze tool failure logs
-│   │   └── llms-txt.md         # View LLM-optimized documentation
+│   │   └── llms-txt.md         # View raw /llms.txt documentation
 │   ├── rules/                  # Behavioral Rules
 │   │   ├── critical-actions.md # Block dangerous commands (rm -rf, git push -f, etc.)
 │   │   ├── code-style.md       # Coding conventions and standards
 │   │   └── security.md         # Security best practices
 │   ├── skills/                 # Tool Capabilities
-│   │   ├── cli-wrappers/       # Lightweight CLI wrappers (Replaces MCP overhead)
+│   │   ├── cli-patterns/       # Lightweight general CLI patterns
 │   │   │   ├── SKILL.md        # Skill definition and usage
 │   │   │   └── references/     # CLI reference documentation
 │   │   │       ├── github-cli.md

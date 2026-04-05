@@ -15,7 +15,7 @@
 | `do-sonnet.md` | Sonnet으로 실행 | context: fork, model: sonnet |
 | `do-opus.md` | Opus로 실행 | context: fork, model: opus |
 | `plan.md` | 복잡한 작업 | @planner → @builder 체인 |
-| `dplan.md` | 심층 계획 | @dplanner (Sequential Thinking + Perplexity + Context7) |
+| `dplan.md` | 심층 계획 | @dplanner (Sequential Thinking + Perplexity + 공식 Context7 설치 시) |
 | `review.md` | 코드 검토 | 읽기 전용, 카테고리 |
 | `learn.md` | 패턴 캡처 | 자동 추출 또는 명시적 지정 |
 | `session-save.md` | 상태 저장 | 비밀 정보 삭제 |
@@ -23,7 +23,7 @@
 | `load-context.md` | 컨텍스트 로드 | Read tool, 비용 경제 |
 | `compact-phase.md` | 전략적 축소 | 단계 인식 가지치기 |
 | `watch.md` | tmux 모니터링 | 메시지 비용 없음 |
-| `llms-txt.md` | LLM 최적화 문서 | URL에서 /llms.txt 조회 |
+| `llms-txt.md` | LLM 최적화 문서 | URL에서 raw /llms.txt 조회 |
 | `analyze-failures.md` | 도구 오류 분석 | 하이브리드 학습 (로그 + 분석) |
 
 ## 명령어 카테고리
@@ -64,7 +64,7 @@
 | 명령어 | 사용 시점 | 리소스 사용량 |
 |---------|-------------|--------------|
 | `/watch` | 장기 실행 프로세스 모니터링 | 로컬 tmux (API 사용 안 함) |
-| `/llms-txt` | LLM 최적화 문서 조회 | 최소 (WebFetch) |
+| `/llms-txt` | raw LLM 최적화 문서 조회 | 최소 (WebFetch) |
 
 ## 워크플로우 예시
 
@@ -102,7 +102,7 @@
 # 3. 연구 결과를 바탕으로 구현
 # (복잡도에 따라 /plan 또는 /do 사용)
 ```
-**Quota:** 높음 (Sonnet 4.6 + Sequential Thinking + Perplexity + Context7)
+**Quota:** 높음 (Sonnet 4.6 + Sequential Thinking + Perplexity + 공식 Context7 설치 시)
 
 ### 디버깅 및 학습
 ```bash
@@ -144,7 +144,7 @@
 | **사용 사례** | 간단한 작업 | 복잡한 로직 | 중요한 결정 | 다중 파일 기능 | 미지의 영역 |
 | **영향받는 파일** | 1-3 | 1-3 | 제한없음 | 5+ | 제한없음 |
 | **질문** | 불가 | 불가 | 불가 | ≤3 (기본값 포함) | 무제한 |
-| **연구 도구** | 불가 | 불가 | 불가 | 불가 | 가능 (Perplexity, Context7) |
+| **연구 도구** | 불가 | 불가 | 불가 | 불가 | 가능 (Perplexity + 공식 Context7 설치 시) |
 
 **결정 트리:**
 ```

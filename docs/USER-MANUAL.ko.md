@@ -30,6 +30,29 @@
    /load-context backend
    ```
 4. 첫 작업은 `/do`로 시작합니다.
+5. (선택) 이후 세션에서 최신 공식 라이브러리 문서를 쓰고 싶다면:
+   ```bash
+   cpmm setup
+   ```
+
+interactive 모드에서는 `cpmm setup`이 권장 Context7 경로 전체를 제안할 수 있습니다.
+
+공식 수동 설정 경로:
+
+```bash
+npm install -g ctx7
+ctx7 setup --cli --claude
+```
+
+설정 후에는 공식 Context7가 최신 라이브러리 문서 조회를 처리합니다. `/llms-txt`는 raw `/llms.txt` 내용이나 직접 docs URL이 필요할 때만 사용하세요.
+
+권장 검증:
+
+```bash
+command -v ctx7
+ctx7 --version
+cpmm doctor
+```
 
 ## 2. 10초 커맨드 선택표
 
@@ -38,7 +61,7 @@
 | 작고 명확한 작업 (1-3 파일) | `/do` | `/do Fix null check in user service and add minimal test.` |
 | 여러 파일 기능 (4+ 파일) 또는 구조 판단 필요 | `/plan` | `/plan Add JWT refresh flow with rotation.` |
 | 구현 없이 설계안만 필요 | `/plan --no-build` | `/plan --no-build Propose DB migration strategy for billing.` |
-| 심층 조사 필요 (Sequential Thinking + Perplexity + Context7) | `/dplan` | `/dplan Analyze race conditions in payment retries.` |
+| 심층 조사 필요 (Sequential Thinking + Perplexity + 공식 Context7 설치 시) | `/dplan` | `/dplan Analyze race conditions in payment retries.` |
 | `/do`가 복잡 로직에서 반복 실패 | `/do-sonnet` | `/do-sonnet Implement conflict-safe cache invalidation.` |
 | Sonnet도 막히거나 매우 중요한 결정 | `/do-opus` | `/do-opus Resolve deadlock risk in transaction coordinator.` |
 | 머지 전 코드 점검 | `/review` | `/review src/auth/` |
@@ -57,7 +80,7 @@
 | 특정 패턴 직접 저장 | `/learn` | `/learn "Use DTO mappers for API responses"` |
 | 저장된 패턴 목록 확인 | `/learn --show` | `/learn --show` |
 | 도구 실패 패턴 분석 (기본: 최근 50건) | `/analyze-failures` | `/analyze-failures 100` |
-| llms.txt 문서 조회 (Context7 미지원 시 보조) | `/llms-txt` | `/llms-txt nextjs` |
+| raw llms.txt 또는 직접 docs URL 조회 | `/llms-txt` | `/llms-txt nextjs` |
 
 > **참고:**
 > - `/compact-phase`는 자동으로 압축하지 **않습니다**. `/compact [instructions]` 명령을 출력하므로, 이를 복사하여 직접 실행하세요.
@@ -265,9 +288,11 @@ tmux 기본 제어:
 
 분석 결과를 `/learn`으로 규칙화합니다.
 
-### 시나리오 13: 라이브러리 공식 문서 빠른 확인
+### 시나리오 13: Raw llms.txt 문서 필요
 
-적용: 구현 중 API/문법 확인이 즉시 필요할 때.
+적용: raw `/llms.txt` 내용이나 직접 docs URL이 필요할 때.
+
+최신 공식 라이브러리 문서는 공식 Context7 설정 후 자연어로 요청하면 공식 Context7가 처리합니다.
 
 ```bash
 /llms-txt nextjs

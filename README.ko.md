@@ -16,7 +16,7 @@ CPMM은 모델 라우팅, 출력 제어, 로컬 안전장치로 리셋 전까지
 
 > **설치 완료했다면 여기서 시작하세요: [사용자 가이드](docs/USER-MANUAL.ko.md)**
 >
-> **New in v1.3.1:** RTK를 이미 켜둔 사용자에 대해 `cpmm setup`이 관리된 hook 순서와 timeout을 자동 복원합니다.
+> **Context7 업데이트:** `cpmm setup`에서 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 opt-in으로 실행할 수 있고, `/llms-txt`는 explicit raw-doc fallback으로 유지됩니다.
 
 ---
 
@@ -52,22 +52,38 @@ cpmm setup
 cpmm doctor
 ```
 
-> **v1.3.1 참고:** `cpmm setup`은 지원 환경에서 RTK 설치를 계속 시도합니다. RTK 활성화는 여전히 opt-in이지만, 한 번 켠 뒤에는 CPMM이 관리된 hook 순서와 timeout을 자동 복원합니다.
+### 4. 선택: 최신 라이브러리 문서 설정
+
+이제 interactive `cpmm setup`에서 권장 Context7 경로 전체를 opt-in으로 실행할 수 있습니다.
+
+공식 수동 설정 경로:
+```bash
+npm install -g ctx7
+ctx7 setup --cli --claude
+```
+
+- CPMM은 Context7를 기본 MCP 경로로 취급하지 않습니다.
+- 공식 설정 후에는 Context7의 공식 문서 통합이 최신 라이브러리 문서 조회를 처리합니다.
+- `/llms-txt`는 raw `/llms.txt` 내용이나 URL 기반 raw-doc 조회가 필요할 때만 사용하세요.
+
+> **설치 참고:** `cpmm setup`은 지원 환경에서 RTK 설치를 계속 시도합니다. RTK 활성화는 여전히 opt-in이며, Context7 opt-in은 `ctx7` 전역 설치와 공식 Claude Code 설정을 함께 진행합니다.
 
 의존성 정책:
 - `required`: `jq`, `mgrep`, `tmux`
+- `optional` (interactive opt-in): `ctx7` + 공식 Context7 Claude 통합
 - `optional` (자동 설치 시도): `rtk`
 - `optional` (확인만): `claude` (사전 설치 가정)
 - 도구별 자동 설치 경로:
   - `mgrep`: `npm`
+  - `ctx7`: `npm` + `ctx7 setup --cli --claude` (`cpmm setup`에서 interactive opt-in)
   - `rtk`: `brew` 또는 upstream `curl` installer
   - `jq`, `tmux`: `brew` (macOS) 또는 Linux 패키지 매니저 `apt-get`, `dnf`, `pacman`, `apk`
 - macOS에서 Homebrew가 없으면 설치 명령을 안내합니다
 
-### 4. 커스텀 & 업데이트 정책
+### 5. 커스텀 & 업데이트 정책
 
-- `cpmm setup`은 누락된 의존성을 설치한 뒤, CPMM 설정(설정 파일 복사, 언어 선택, Perplexity 설정)까지 진행합니다.
-- `cpmm doctor`는 수정 없이 의존성 상태와 RTK hook 상태를 확인합니다.
+- `cpmm setup`은 누락된 의존성을 설치한 뒤, CPMM 설정(설정 파일 복사, 언어 선택, Perplexity 설정, optional `ctx7` 설치 + 공식 Context7 설정, managed config 정리)까지 진행합니다.
+- `cpmm doctor`는 수정 없이 의존성 상태, Context7 상태, RTK hook 상태를 확인합니다.
 - 재실행 시 CPMM 관리 파일은 최신 버전으로 교체되고, 사용자 데이터는 보존됩니다.
 
 ```text
@@ -76,7 +92,7 @@ cpmm doctor
   ├── commands/          🔄 업데이트 시 교체됨
   ├── contexts/          🔄 업데이트 시 교체됨
   ├── scripts/           🔄 업데이트 시 교체됨
-  ├── skills/cli-wrappers/ 🔄 업데이트 시 교체됨
+  ├── skills/cli-patterns/ 🔄 업데이트 시 교체됨
   ├── rules/*.md         🔄 업데이트 시 교체됨
   ├── settings.json      🔄 업데이트 시 교체됨
   ├── settings.local.json  ✋ 사용자 소유 — 보존됨
@@ -98,10 +114,15 @@ cpmm doctor
 > 1. 글로벌 커스텀은 일반적으로 `settings.local.json`에 둡니다. `settings.json`은 CPMM 관리 대상이라 업데이트 시 덮어쓰기되므로, RTK 같은 third-party hook을 여기에 넣었다면 업데이트 후 다시 확인해야 합니다.
 > 2. 커스텀 명령어/규칙은 프로젝트 `.claude/`에 — 글로벌 `commands/`는 CPMM이 관리합니다.
 
+관리 설정 경계:
+- `~/.claude.json`은 CPMM 관리 대상이며 업데이트 시 정리될 수 있습니다.
+- regular file `~/.mcp.json`은 사용자 소유라 CPMM이 자동 수정하지 않습니다.
+- symlink `~/.mcp.json`은 CPMM 관리 호환 경로로 취급합니다.
+
 프로젝트 초기화 팁:
 - `claude` 실행 전에 `project-templates/`를 참고해 프로젝트를 초기화하세요. (설치기는 `project-templates`를 `~/.claude`로 복사하지 않습니다.)
 
-### 5. Bash 명령 출력 필터링 (RTK)
+### 6. Bash 명령 출력 필터링 (RTK)
 
 RTK는 CPMM이 지원하는 **선택적 Bash 명령 출력 필터링 계층**입니다. `cpmm setup`은 RTK 바이너리 설치를 시도하지만, RTK hook은 기본 활성화하지 않습니다.
 
@@ -139,13 +160,20 @@ cpmm doctor
 rtk init -g --uninstall
 ```
 
-### 6. 고급 (선택)
+### 7. 고급 (선택)
 <details>
 <summary>Perplexity, 언어, 수동 설치 보기</summary>
 
-**Perplexity/언어 설정 (필수 아님):**
-- Perplexity는 `/dplan`의 웹 리서치에 사용됩니다. 설정하지 않아도 `/dplan`은 Sequential Thinking + Context7으로 동작하며, 나머지 모든 기능은 Perplexity와 무관합니다.
+**Perplexity/언어/Context7 설정 (필수 아님):**
+- Perplexity는 `/dplan`의 웹 리서치에 사용됩니다. 설정하지 않아도 `/dplan`은 Sequential Thinking으로 동작하고, 최신 라이브러리 문서는 공식 Context7이 설치된 경우 사용할 수 있습니다. 나머지 모든 기능은 Perplexity와 무관합니다.
 - 최초 인터랙티브 설치 시 `cpmm setup`이 출력 언어와 Perplexity API 키를 묻습니다.
+- `cpmm setup`은 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 optional 단계로 제안할 수 있습니다.
+- 수동 검증:
+  ```bash
+  command -v ctx7
+  ctx7 --version
+  cpmm doctor
+  ```
 - 영어(기본): 파일이 필요 없습니다. `~/.claude/rules/language.md`가 있으면 삭제하세요.
 - 비영어: `~/.claude/rules/language.md`를 만들어 원하는 언어를 지정하세요.
 - Perplexity를 수동으로 설정하려면 `~/.claude.json`의 `mcpServers`에 아래를 추가하세요:
@@ -273,7 +301,7 @@ flowchart LR
 | 명령어 | 설명 | 추천 상황 |
 | :--- | :--- | :--- |
 | **🧠 심층 실행** | | |
-| `/dplan [작업]` | **Sonnet 4.6** + Perplexity, Sequential Thinking, Context7 | 라이브러리 비교, 최신 기술 조사 (심층 연구) |
+| `/dplan [작업]` | **Sonnet 4.6** + Perplexity, Sequential Thinking, 공식 Context7 설치 시 | 라이브러리 비교, 최신 기술 조사 (심층 연구) |
 | `/do-sonnet` | **Sonnet 4.6**로 직접 실행 | Haiku 4.5가 계속 실패할 때 수동 격상 |
 | `/do-opus` | **Opus 4.6**으로 직접 실행 | 매우 복잡한 문제 해결 (비용 주의) |
 | **💾 세션/컨텍스트** | | |
@@ -285,7 +313,7 @@ flowchart LR
 | `/learn` | 패턴 학습 및 저장 | 자주 반복되는 오류나 선호 스타일 등록 |
 | `/analyze-failures` | 오류 로그 분석 | 반복되는 에러 원인 파악 |
 | `/watch` | 프로세스 모니터링 (tmux) | 장시간 빌드/테스트 관찰 |
-| `/llms-txt` | 문서 가져오기 | 라이브러리 공식 문서를 LLM 포맷으로 로드 |
+| `/llms-txt` | raw 문서 가져오기 | raw `/llms.txt` 내용 또는 직접 docs URL 로드 |
 
 </details>
 
@@ -324,7 +352,7 @@ flowchart LR
 | **🕹️ Commands** | /plan, /do, /review 등 14개 명령어 사용법 | [📂 **Commands 가이드**](.claude/commands/README.ko.md) |
 | **🪝 Hooks** | Pre-check, Auto-format 등 11개 자동화 스크립트 로직 | [📂 **Hooks 가이드**](scripts/hooks/README.ko.md) |
 | **📏 Rules** | 보안, 코드 스타일, 위험 명령어 차단 정책 | [📂 **Rules 가이드**](.claude/rules/README.ko.md) |
-| **🧠 Skills** | CLI Wrapper 등 도구 기술 명세 | [📂 **Skills 가이드**](.claude/skills/README.ko.md) |
+| **🧠 Skills** | CLI Patterns 같은 도구 스킬 사양 | [📂 **Skills 가이드**](.claude/skills/README.ko.md) |
 | **🔧 Contexts** | Backend/Frontend 프로젝트별 컨텍스트 템플릿 | [📂 **Contexts 가이드**](.claude/contexts/README.ko.md) |
 | **💾 Sessions** | 세션 요약 저장 및 관리 구조 | [📂 **Sessions 가이드**](.claude/sessions/README.ko.md) |
 | **🛠️ Scripts** | Verify, Build, Test 범용 스크립트 모음 | [📂 **Scripts 가이드**](scripts/README.ko.md) |
@@ -341,7 +369,7 @@ flowchart LR
 
 ```text
 claude-pro-minmax
-├── .claude.json                # 글로벌 MCP 설정 (User Scope)
+├── .claude.json                # 관리되는 글로벌 MCP 설정
 ├── .claudeignore               # Claude 컨텍스트 제외 규칙
 ├── .gitignore                  # Git ignore 규칙
 ├── CONTRIBUTING.md             # 기여 가이드
@@ -377,13 +405,13 @@ claude-pro-minmax
 │   │   ├── load-context.md     # 사전 정의된 컨텍스트 템플릿 로드
 │   │   ├── learn.md            # 새로운 패턴을 메모리에 저장
 │   │   ├── analyze-failures.md # 도구 실패 로그 분석
-│   │   └── llms-txt.md         # LLM 최적화 문서 조회
+│   │   └── llms-txt.md         # raw /llms.txt 문서 조회
 │   ├── rules/                  # 행동 규칙
 │   │   ├── critical-actions.md # 위험 명령어 차단 (rm -rf, git push -f, etc.)
 │   │   ├── code-style.md       # 코딩 컨벤션 및 표준
 │   │   └── security.md         # 보안 모범 사례
 │   ├── skills/                 # 도구 능력
-│   │   ├── cli-wrappers/       # 경량 CLI 래퍼 (MCP 오버헤드 대체)
+│   │   ├── cli-patterns/       # 경량 일반 CLI 패턴
 │   │   │   ├── SKILL.md        # 스킬 정의 및 사용법
 │   │   │   └── references/     # CLI 참조 문서
 │   │   │       ├── github-cli.md

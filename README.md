@@ -16,7 +16,7 @@ CPMM helps Pro users complete more verified tasks before reset through model rou
 
 > **Already installed? Start here: [User Guide](docs/USER-MANUAL.md)**
 >
-> **Context7 update:** `cpmm setup` can now install `ctx7` globally and then run the official Context7 Claude Code setup, while keeping `/llms-txt` as an explicit raw-doc fallback.
+> **New in v1.4.0:** `cpmm setup` can now install `ctx7` globally and then run the official Context7 Claude Code setup, while keeping `/llms-txt` as an explicit raw-doc fallback.
 
 ---
 
@@ -66,7 +66,7 @@ ctx7 setup --cli --claude
 - After official setup, Context7's own docs integration handles current library doc lookups.
 - Use `/llms-txt` only when you explicitly want raw `/llms.txt` content or a URL-based raw-doc fetch.
 
-> **Setup note:** `cpmm setup` still attempts RTK installation when supported. RTK activation remains opt-in, and Context7 opt-in now installs the `ctx7` CLI plus the official Claude Code integration.
+> **v1.4.0 note:** `cpmm setup` still attempts RTK installation when supported. RTK activation remains opt-in, and Context7 opt-in now installs the `ctx7` CLI plus the official Claude Code integration.
 
 Dependency policy:
 - `required`: `jq`, `mgrep`, `tmux`

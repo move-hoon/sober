@@ -16,7 +16,7 @@ CPMM은 모델 라우팅, 출력 제어, 로컬 안전장치로 리셋 전까지
 
 > **설치 완료했다면 여기서 시작하세요: [사용자 가이드](docs/USER-MANUAL.ko.md)**
 >
-> **Context7 업데이트:** `cpmm setup`에서 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 opt-in으로 실행할 수 있고, `/llms-txt`는 explicit raw-doc fallback으로 유지됩니다.
+> **New in v1.4.0:** `cpmm setup`에서 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 opt-in으로 실행할 수 있고, `/llms-txt`는 explicit raw-doc fallback으로 유지됩니다.
 
 ---
 
@@ -66,7 +66,7 @@ ctx7 setup --cli --claude
 - 공식 설정 후에는 Context7의 공식 문서 통합이 최신 라이브러리 문서 조회를 처리합니다.
 - `/llms-txt`는 raw `/llms.txt` 내용이나 URL 기반 raw-doc 조회가 필요할 때만 사용하세요.
 
-> **설치 참고:** `cpmm setup`은 지원 환경에서 RTK 설치를 계속 시도합니다. RTK 활성화는 여전히 opt-in이며, Context7 opt-in은 `ctx7` 전역 설치와 공식 Claude Code 설정을 함께 진행합니다.
+> **v1.4.0 참고:** `cpmm setup`은 지원 환경에서 RTK 설치를 계속 시도합니다. RTK 활성화는 여전히 opt-in이며, Context7 opt-in은 `ctx7` 전역 설치와 공식 Claude Code 설정을 함께 진행합니다.
 
 의존성 정책:
 - `required`: `jq`, `mgrep`, `tmux`

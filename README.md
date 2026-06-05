@@ -6,88 +6,240 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![GitHub stars](https://img.shields.io/github/stars/move-hoon/sober.svg?style=social)](https://github.com/move-hoon/sober)
 
-
 # Sober
 
 ![Sober preview](https://github.com/user-attachments/assets/c4113ea9-06a5-43f8-bb5c-edc45ea82364)
 
-**A local behavior harness that makes Claude Code and Codex CLI read less, guess less, and verify more.**
-
-Sober is a small, local harness to make AI coding tools like Claude Code and Codex CLI run more consistently and efficiently. It installs one rules file, a few focused skills, and lightweight safety hooks so your agent reads only what it needs, locates target lines using actual search tools, makes pinpoint edits, verifies changes via tests, and stops looping on failed guesses.
-
-It is not a new agent runtime. It does not run a service. It does not ask for API keys. Once installed, simply ask Claude Code or Codex CLI for tasks, and both runtimes will align behind the same working contract.
-
-### Before & After
-
-- **Before Sober**: Agents read entire files blindly, guess code locations, and spend quota on verbose explanations.
-- **After Sober**: Agents locate target lines with tools, make minimal edits, verify changes via tests, and report briefly.
-
-Sober drastically reduces context byte inflow per task by enforcing target-line reading, pinpoint tool searches, and diff-only outputs instead of full-file dumps. For design decisions and constraints, see [`docs/adr/`](docs/adr/).
-
-> 💡 **How to use**: After installing Sober, just request tasks via `claude` or `codex` command as usual. Sober does not run a separate runtime; it simply links rules, skills, and hooks into each CLI's configuration.
+**Stop your AI coding agent from wasting tokens and making blind guesses.**
 
 ---
 
-## Quick start
+## What is Sober?
+
+Sober is not another AI. It is a small rules-and-tools package you install once on top of **Claude Code** or **Codex CLI** — the AI coding tools you already use.
+
+After installing, you keep running `claude` or `codex` exactly as before. Sober quietly gives them better working habits:
+
+- **Search before reading** — find the exact line instead of dumping whole files
+- **Edit the smallest safe area** — patch only what needs to change
+- **Verify with tests** — run the build before declaring success
+- **Stop repeating failed guesses** — re-plan after a few failures
+- **Report briefly** — show the result, not a wall of text
+
+Don't like it? Run `sober uninstall` and everything goes back to exactly how it was. No trace left behind.
+
+---
+
+## Why use it?
+
+AI coding agents are powerful, but they waste quota in predictable ways:
+
+| Without Sober | With Sober |
+|---|---|
+| Reads entire files to find one line | Finds `file:line` first |
+| Guesses where code lives | Uses search tools before opening files |
+| Rewrites more than necessary | Makes the smallest safe patch |
+| Says "done" without proof | Runs the right verification |
+| Repeats failed attempts | Stops, explains, and re-plans |
+| Produces long summaries | Reports result, changed files, and test output |
+
+**The goal: spend model thinking on judgment, not on grep.**
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Codex CLI](https://github.com/openai/codex) must be installed first
+- Node.js 18+
+
+### Install
 
 ```bash
 npm install -g getsober@latest
-sober install
+sober setup
+```
+
+### Verify
+
+```bash
 sober doctor
 ```
 
-That gives you:
-
-- one source of truth in `~/.sober`
-- shared rules for Claude Code and Codex CLI
-- Sober skills linked into each runtime
-- Claude Code and Codex hooks/rules for safety, handoff, formatting, compact reminders, and failure logs
-
-Sober does not intercept OS-level processes; it simply links rules, skills, and hooks into the CLI's configuration endpoints.
-
-Common commands:
+### Use it — just open your project as usual
 
 ```bash
-sober install          # apply / refresh Sober's policy files globally
-sober setup            # install deps + optional Context7 / search-edit toolkit
-sober doctor           # check install, deps, hooks, and optional tools
-sober template [dir]   # bootstrap a specific project with local rules and HANDOFF.md memory
-sober uninstall        # remove Sober symlinks and ~/.sober
+cd your-project
+claude          # or: codex
 ```
 
-First request example (to guide the agent's behavior correctly):
+Then ask for work with a clear goal:
 
-> "Fix this bug. Locate the relevant files first, make the minimal required edits, and verify with tests."
+```text
+Fix the login timeout bug. Find the relevant lines first, make the smallest safe change, and verify with tests.
+```
 
-Install from source if you want to audit every line first:
+That's it. Sober works behind the scenes. The command you run every day is still `claude` or `codex`.
+
+---
+
+## Usage Guide
+
+### Writing effective prompts
+
+The single most important habit: **tell the agent what to do, what not to touch, and how to verify.**
+
+**Good prompt:**
+```text
+Change the payment retry timeout from 3s to 5s.
+Keep behavior unchanged otherwise.
+Verify with the existing payment tests.
+```
+
+**Bad prompt:**
+```text
+Clean up this repo.
+```
+
+> [!WARNING]
+> Broad prompts without a stop condition waste the most quota. Always include what "done" looks like.
+
+### Skills — what they are and when to use them
+
+Skills are not terminal commands. They are small instruction packs that shape how the agent works. You rarely need to name them directly — just describe the behavior you want.
+
+| Skill | When it helps | Example prompt |
+|---|---|---|
+| `karpathy` | Every task | "Do only the requested change. Don't clean unrelated files." |
+| `search-ladder` | Finding code | "Find the relevant `file:line` first. Don't read whole files." |
+| `edit-deterministic` | Repeated changes | "Use a repeatable rewrite for all similar call sites." |
+| `caveman` | Long responses | "Report only result, changed files, tests, and risks." |
+| `observe` | Adding tools/rules | "Measure before and after. Keep it only if the metric improves." |
+| `sober-review` | Before commit | "Run the sober-review checklist. Report issues only. Don't edit." |
+| `structure-graph` | Large unfamiliar repos | "Map the repo structure first, then verify with search." |
+
+### When the agent gets stuck
+
+Don't push harder — redirect.
+
+1. **Shrink the task** into a smaller piece.
+2. **Ask for a plan** before more edits: *"Write a 3-line plan before changing anything."*
+3. **Re-check evidence** — the search results may be stale.
+4. **3 failures = stop** — if the same idea failed 3 times, stop and re-plan from scratch.
+5. **Analyze tool errors** — use `/analyze-failures` in Claude Code to see patterns.
+
+### Session handoff
+
+Long conversations get noisy. Before stopping:
+
+```text
+Summarize only: verified facts, remaining risks, and the next command to run.
+```
+
+Sober's handoff hook automatically writes a small `.claude/HANDOFF.md` with the current branch, last commit, and uncommitted changes when a session ends in a git project.
+
+When you start a new session, ask the agent to read `HANDOFF.md` first to pick up where you left off.
+
+### Review before commit
+
+For non-trivial changes, run a read-only review:
+
+```text
+Run the sober-review checklist on this diff.
+Report PASS or ISSUES only. Do not edit files.
+```
+
+This checks correctness, scope, complexity, style, verification coverage, and basic security — without touching any code.
+
+### Measure before adding
+
+Before adding any new tool, skill, or rule, run a before/after check:
+
+```text
+/measure baseline
+# make exactly one change to your setup
+/measure after
+```
+
+Key metrics to watch: files read per task, output tokens, peak context fill, retry rate. **If any metric gets worse, roll back.**
+
+---
+
+## Commands
 
 ```bash
-git clone https://github.com/move-hoon/sober.git
-cd sober
-bash install.sh
+sober install          # apply / refresh policy files globally
+sober setup            # install + offer Context7 / search-edit toolkit
+sober doctor           # check install, deps, hooks, optional tools
+sober template [dir]   # add project-specific rules and HANDOFF.md
+sober uninstall        # remove Sober symlinks and ~/.sober (clean exit)
 ```
 
 ---
 
-## What Sober Solves
+## Optional Tools
 
-Most quota waste is boring and predictable.
+Sober works without these. They make the agent's work cheaper when installed.
 
-| What usually happens | What Sober teaches the agent to do |
+| Tool | Why it helps |
 |---|---|
-| Read whole files to find one line | Locate exact `file:line` matches first |
-| Guess where code lives | Search with `ripgrep`, `ast-grep`, Probe, or Serena |
-| Hand-rewrite mechanical edits | Use repeatable command-line transforms |
-| Change code from stale navigation | Re-check the target, then run compile/tests |
-| Retry the same failed idea | Stop after a few misses and re-plan |
-| Produce long explanations and full-file dumps | Return diffs, paths, and the decision that matters |
-| Add tools because they sound useful | Measure before/after; remove what does not pay |
+| `ripgrep` | Fast exact text search |
+| `ast-grep` | Structural code search and mechanical rewrites |
+| Probe | Index-free structural repo search |
+| Serena | Symbol-aware navigation and edits through LSP |
+| Context7 / `ctx7` | Current library docs instead of stale API memory |
+| `mgrep` | Semantic search for concept queries (last resort) |
 
-The rule of thumb: **spend model thinking on judgment, not grep.**
+```bash
+sober setup       # offers to install these interactively
+sober doctor      # shows what's present and what's missing
+```
+
+For Context7 directly:
+
+```bash
+npm install -g ctx7
+ctx7 setup --cli --claude
+ctx7 setup --cli --universal
+```
+
+For Codex MCP mode, enable Context7 explicitly:
+
+```bash
+codex mcp add context7 -- npx -y @upstash/context7-mcp --api-key YOUR_API_KEY
+```
 
 ---
 
-## The Sober loop
+## Safety & Privacy
+
+- **Additive install** — never overwrites your config; merges only Sober's hooks
+- **Purely local** — no hosted service, no network calls
+- **No API keys** — never asks for or touches your model credentials
+- **Safety guardrails** — dangerous commands are caught by hooks (Claude) and Starlark rules (Codex)
+- **You stay in control** — verification reminders are advisory-only; nothing blocks your `git commit`
+- **No hidden memory** — session memory is a visible `HANDOFF.md` file you can read and edit
+- **Secret redaction** — failure logs automatically mask API keys and tokens before writing
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Agent says a hook is missing | `sober doctor`, then `sober install` |
+| Search tool not found | Keep working, or run `sober setup` to install it |
+| Verification runs wrong stack | `~/.sober/scripts/verify.sh --path <subdir>` |
+| Tool failures repeat | `/analyze-failures` in Claude Code, then re-plan |
+| Output too long | Ask: *"Show only result, diff, and file:line"* |
+
+---
+
+<details>
+<summary><strong>Architecture & Internals</strong> (click to expand)</summary>
+
+### The Sober loop
 
 ```text
 Ask one scoped task
@@ -100,25 +252,7 @@ Ask one scoped task
 
 The loop lives in [`AGENTS.md`](AGENTS.md), the one rules file both runtimes read. Claude Code reads it through `CLAUDE.md`; Codex reads `AGENTS.md` directly.
 
-You do not need to memorize internal policy codes. In plain language, Sober asks the agent to:
-
-1. read only what it needs
-2. search with real tools **(`search-ladder` skill)**
-3. use tools for mechanical edits **(`edit-deterministic` skill)**
-4. verify before changing state **(`verify-gate` hook)**
-5. stop and re-plan after repeated failure
-6. keep memory human-reviewed and file-based **(`HANDOFF.md`)**
-7. isolate risk behind git
-8. measure every harness addition **(`observe` skill)**
-9. keep output compact **(`caveman` skill)**
-
-The longer reasoning behind these choices is recorded in [`docs/adr/`](docs/adr/).
-
----
-
-## What gets installed
-
-### Repository Layout
+### Repository layout
 
 ```text
 .sober/          # canonical shared source: AGENTS, commands, rules, skills, scripts
@@ -129,7 +263,7 @@ AGENTS.md        # symlink to .sober/AGENTS.md
 CLAUDE.md        # symlink to AGENTS.md
 ```
 
-Sober sets `~/.sober` as the shared configuration source, allowing both Claude Code and Codex CLI to read the same rules and skills. It safely links rules, skills, and hooks into each CLI's native configuration format.
+### What gets installed
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
@@ -148,7 +282,7 @@ Sober sets `~/.sober` as the shared configuration source, allowing both Claude C
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### File Tree
+### Installed file tree
 
 ```text
 ~/.sober/AGENTS.md                    # shared policy source
@@ -158,101 +292,46 @@ Sober sets `~/.sober` as the shared configuration source, allowing both Claude C
 ~/.sober/scripts/                     # local hook and verification scripts
 ~/.sober/codex-rules/*.rules          # installed copy of .sober/codex/rules
 
-# For Claude Code Users
-~/.claude/CLAUDE.md                   # symlink, or imports ~/.sober/AGENTS.md if file exists
-~/.claude/AGENTS.md                   # symlink, or imports ~/.sober/AGENTS.md if file exists
-~/.claude/commands/<sober-command>.md -> ~/.sober/commands/<sober-command>.md
-~/.claude/rules/<sober-rule>.md       -> ~/.sober/rules/<sober-rule>.md
-~/.claude/skills/<skill>              -> ~/.sober/skills/<skill>
-~/.claude/settings.json               # Sober hooks are additively merged here
+# Claude Code
+~/.claude/CLAUDE.md                   → ~/.sober/AGENTS.md
+~/.claude/AGENTS.md                   → ~/.sober/AGENTS.md
+~/.claude/commands/<cmd>.md           → ~/.sober/commands/<cmd>.md
+~/.claude/rules/<rule>.md             → ~/.sober/rules/<rule>.md
+~/.claude/skills/<skill>              → ~/.sober/skills/<skill>
+~/.claude/settings.json               # Sober hooks additively merged
 
-# For Codex CLI Users
-~/.codex/AGENTS.md                    # symlink, or inline Sober block if file exists
-~/.agents/skills/<skill>              -> ~/.sober/skills/<skill>
-~/.codex/hooks.json                   # Sober hooks are additively merged here
-~/.codex/rules/sober-critical-actions.rules -> ~/.sober/codex-rules/sober-critical-actions.rules
+# Codex CLI
+~/.codex/AGENTS.md                    → ~/.sober/AGENTS.md (inline)
+~/.agents/skills/<skill>              → ~/.sober/skills/<skill>
+~/.codex/hooks.json                   # Sober hooks additively merged
+~/.codex/rules/*.rules                → ~/.sober/codex-rules/*.rules
 ```
 
-Project-level `AGENTS.md`, `.claude/`, or `.codex/` files can still override the global setup.
+### Runtime hooks
 
----
-
-## Skills
-
-| Skill | Job |
+| Hook | What it does |
 |---|---|
-| `karpathy` | Stay scoped: no invented requirements, no over-building, no unrelated edits, match local style |
-| `caveman` | Keep answers short: result, diff, `file:line`, no ceremony |
-| `search-ladder` | Find code in the cheapest reliable order |
-| `edit-deterministic` | Route mechanical edits to tools instead of manual rewrites |
-| `observe` | Measure context, cost, retries, and failures before adding tools |
-| `structure-graph` | Use repo graphs only as hints for large-codebase flow tracing |
-| `sober-review` | A portable code-review checklist; it reports issues and never edits |
+| `critical-action-check` | Blocks dangerous shell commands |
+| `verify-gate` | Warns before commit/push if changes are unverified (advisory-only) |
+| `handoff-write` | Writes `.claude/HANDOFF.md` on session stop |
+| `session-start` | Loads safe env vars and shows budget reminder |
+| `compact-suggest` | Suggests compaction when context gets long |
+| `post-edit-format` | Auto-formats edited files if a formatter exists |
+| `tool-failure-log` | Logs tool failures locally with secret redaction |
 
----
+Codex runs the same hooks via `~/.codex/hooks.json`. The `sober-critical-actions.rules` file adds an extra Starlark check for dangerous commands.
 
-## Optional tools
-
-Sober works without these. They make the loop cheaper when installed.
-
-| Tool | Why it helps |
-|---|---|
-| `ripgrep` | Fast exact text search |
-| `ast-grep` | Structural code search and mechanical rewrites |
-| Probe | Index-free structural repo search |
-| Serena | Symbol-aware navigation and edits through LSP |
-| Context7 / `ctx7` | Current library docs instead of stale API memory |
-| `mgrep` | Semantic search for concept queries, last resort |
-
-Run:
-
-```bash
-sober doctor
-sober setup
-```
-
-For Context7 directly:
-
-```bash
-npm install -g ctx7
-ctx7 setup --cli --claude
-```
-
-`doctor` shows what is present. `setup` can install missing required dependencies and offer optional integrations.
+</details>
 
 ---
 
 ## Code review and helper agents
 
-Sober ships the **review checklist**, not a fixed reviewer pipeline.
+Sober ships a **review checklist**, not a fixed reviewer pipeline.
 
-Use a separate helper when it pays for itself:
+Use a separate helper only when it pays for itself: reviewing non-trivial changes with fresh eyes, exploring large unfamiliar repos, or running truly independent tasks in parallel.
 
-- reviewing a non-trivial change with fresh eyes
-- exploring a large unfamiliar repository
-- running several truly independent tasks in parallel
-
-Avoid fixed multi-agent chains for everyday work. They often spend more quota than they save. The checklist is in `.sober/skills/sober-review`; the actual helper can be Claude Code's native subagent, a Codex helper, or a reviewer you already trust.
-
----
-
-## Safety and privacy
-
-- **Additive Installation**: Sober never overwrites your config. It safely merges its hooks into `settings.json` and `hooks.json`. Your environment variables, permissions, and existing tools are preserved.
-- **Purely Local**: Sober is local configuration and bash scripts, not a hosted service.
-- **No API Keys**: Sober never asks for or touches your model API keys.
-- **Safety Guardrails**: Dangerous shell commands are detected and blocked prior to execution by Claude Hooks and Codex Starlark Rules.
-- **User in Control**: Verification reminders (like testing before committing) are advisory-only and do not block your `git commit` or `push` commands. You retain final control over what gets executed.
-- **No Hidden Memory**: Session memory is a small, visible `HANDOFF.md` file for humans to review. No automatic hidden memory bloating your context.
-- **Local Failure Logs & Redaction**: Tool-failure logs are stored locally and automatically redact common secret patterns before writing.
-
----
-
-## Learn the workflow
-
-- Day-to-day guide: [`docs/USER-MANUAL.md`](docs/USER-MANUAL.md)
-- Design decisions: [`docs/adr/`](docs/adr/)
-- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+Avoid fixed multi-agent chains for everyday work. The checklist is in `.sober/skills/sober-review`; the actual helper can be Claude Code's native subagent, a Codex helper, or a reviewer you already trust.
 
 ---
 
@@ -264,6 +343,8 @@ cd sober
 npm test
 npm pack --dry-run
 ```
+
+Design decisions: [`docs/adr/`](docs/adr/) · Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## License
 

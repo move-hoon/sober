@@ -72,18 +72,25 @@ context7_official_skill_installed() {
   [ -f "$HOME/.claude/skills/find-docs/SKILL.md" ]
 }
 
+context7_universal_skill_installed() {
+  [ -f "$HOME/.agents/skills/docs/SKILL.md" ] || [ -f "$HOME/.agents/skills/find-docs/SKILL.md" ]
+}
+
 context7_official_rule_installed() {
   [ -f "$HOME/.claude/rules/context7.md" ]
 }
 
 context7_official_integration_installed() {
-  context7_official_skill_installed && context7_official_rule_installed
+  context7_official_skill_installed && context7_official_rule_installed && context7_universal_skill_installed
 }
 
 print_context7_manual_hints() {
   echo "   Re-run sober setup in an interactive terminal to opt in, or run the official commands directly:"
   echo "   npm install -g ctx7"
   echo "   ctx7 setup --cli --claude"
+  echo "   ctx7 setup --cli --universal"
+  echo "   # Optional Codex MCP, requires a Context7 API key:"
+  echo "   codex mcp add context7 -- npx -y @upstash/context7-mcp --api-key YOUR_API_KEY"
 }
 
 run_context7_global_install() {
@@ -138,11 +145,20 @@ run_context7_official_setup() {
 
   echo ""
   echo "📚 Context7 Official CLI + Skills Setup"
-  echo "   This runs the official Context7 Claude Code setup."
+  echo "   This runs the official Context7 Claude Code and Universal skills setup."
   echo "  $ $CONTEXT7_BIN setup --cli --claude"
+  echo "  $ $CONTEXT7_BIN setup --cli --universal"
 
-  if "$CONTEXT7_BIN" setup --cli --claude; then
-    echo "✅ Context7 official CLI + Skills setup complete"
+  local ok=0
+  if ! "$CONTEXT7_BIN" setup --cli --claude; then
+    ok=1
+  fi
+  if ! "$CONTEXT7_BIN" setup --cli --universal; then
+    ok=1
+  fi
+
+  if [ "$ok" -eq 0 ]; then
+    echo "✅ Context7 official Claude + Universal skills setup complete"
     return 0
   fi
 
@@ -157,7 +173,7 @@ offer_context7_setup() {
   if context7_cli_installed && context7_official_integration_installed; then
     echo ""
     echo "📚 Context7 Setup"
-    echo "   Context7 CLI and official Claude integration are already installed."
+    echo "   Context7 CLI plus Claude and Universal skills are already installed."
     return 0
   fi
 
@@ -177,8 +193,8 @@ offer_context7_setup() {
   if [ -z "$choice" ]; then
     echo ""
     echo "📚 Context7 Setup (Optional)"
-    echo "   Install ctx7 globally and run the official Context7 Claude Code setup?"
-    echo "   1) Yes, run npm install -g ctx7 + ctx7 setup --cli --claude (Recommended)"
+    echo "   Install ctx7 globally and run the official Context7 Claude + Universal skills setup?"
+    echo "   1) Yes, run npm install -g ctx7 + ctx7 setup --cli --claude + --universal (Recommended)"
     echo "   2) Skip for now (default)"
     echo -n "   Select [1-2]: "
     read -r CONTEXT7_CHOICE < /dev/tty || CONTEXT7_CHOICE="3"
@@ -640,7 +656,7 @@ echo "  sober uninstall   # remove Sober's symlinks and ~/.sober"
 echo ""
 echo "Context7 (Optional Official Integration):"
 if context7_official_integration_installed; then
-  echo "  Installed: official Context7 Claude integration"
+  echo "  Installed: official Context7 Claude + Universal skills integration"
 else
   echo "  Re-run sober setup in an interactive terminal to opt in"
 fi
@@ -649,7 +665,9 @@ if context7_cli_installed; then
 else
   echo "  Manual CLI install: npm install -g ctx7"
 fi
-echo "  Manual official setup: ctx7 setup --cli --claude"
+echo "  Manual official setup:"
+echo "    ctx7 setup --cli --claude"
+echo "    ctx7 setup --cli --universal"
 echo ""
 echo "Language:"
 echo "  To change language: edit ~/.claude/rules/language.md"

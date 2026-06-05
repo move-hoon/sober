@@ -38,7 +38,7 @@ Read the output as a map:
 
 - **Required deps (Required Deps)**: Core tools that Sober needs to run, such as `jq`.
 - **Optional tools (Optional Tools)**: Tools that make the workflow cheaper, such as `ast-grep`, Probe, Serena, Context7, and `mgrep`.
-- **Runtime hooks (Hooks)**: Runtime automation scripts (Claude hooks in `~/.claude/settings.json`, Codex hooks in `~/.codex/hooks.json`, scripts in `~/.sober/scripts`).
+- **Runtime hooks (Hooks)**: Runtime automation scripts (Claude hooks in `~/.claude/settings.json`, Codex hooks in `~/.codex/hooks.json`, Sober scripts in `~/.sober/scripts`).
 
 > [!NOTE]
 > If any optional tool is missing, Sober still works fine. Install optional tools only when you need them to help with your work.
@@ -157,7 +157,7 @@ The goal is not more effort. The goal is a better next move.
 
 If a conversation gets too long and noisy, ask the agent to summarize (`compact`). Keep only the decided facts and drop dead ends.
 
-Claude Code writes a bounded `.claude/HANDOFF.md` on session stop. It includes the active branch, last commit, and a summary of uncommitted changes.
+The Sober handoff hook writes a bounded `.claude/HANDOFF.md` on session stop when the runtime provides a project directory. It includes the active branch, last commit, and a summary of uncommitted changes.
 
 > [!TIP]
 > Useful habit before stopping:
@@ -201,19 +201,19 @@ A good review checks correctness, scope, unnecessary complexity, style, verifica
 
 ## 11. Understand runtime hooks
 
-Sober connects small local hooks to Claude Code and Codex CLI user configurations. (Claude uses `~/.claude/settings.json`; Codex uses `~/.codex/hooks.json` plus `~/.codex/rules/` rules for command execution).
+Sober connects small local hooks to Claude Code and Codex CLI user configurations. Claude uses `~/.claude/settings.json`; Codex uses `~/.codex/hooks.json` plus Sober-owned rules linked into `~/.codex/rules/`.
 
 | Hook | What it does |
 |---|---|
 | `critical-action-check` | blocks dangerous shell commands |
 | `verify-gate` | warns before commit/push if code changed without verification evidence |
-| `handoff-write` | writes `.claude/HANDOFF.md` when a session stops |
+| `handoff-write` | writes `.claude/HANDOFF.md` when a session stops and a project git repo is available |
 | `session-start` | loads safe env names and shows a short budget reminder |
 | `compact-suggest` | reminds you to compact long sessions |
 | `post-edit-format` | formats edited files when a formatter exists |
 | `tool-failure-log` | logs repeated tool failures locally with secret redaction |
 
-Codex runs the matching Sober hooks from `~/.codex/hooks.json`. In Codex, `sober-critical-actions.rules` double-checks for dangerous commands.
+Codex runs the matching Sober hooks from `~/.codex/hooks.json`. In Codex, `sober-critical-actions.rules` is linked from `~/.sober/codex-rules/` into `~/.codex/rules/` to double-check dangerous commands.
 
 > [!NOTE]
 > The `verify-gate` hook does not block `git commit` or `push` commands. It is advisory-only, showing a warning on screen to help you avoid accidentally pushing untested code.
@@ -237,12 +237,12 @@ Then ask for the docs naturally in the session, for example:
 ## 13. Update or uninstall
 
 ```bash
-sober install      # refresh symlinks and Sober files
+sober install      # refresh ~/.sober, runtime symlinks, and additive hook merges
 sober doctor       # confirm state
-sober uninstall    # remove Sober symlinks and ~/.sober
+sober uninstall    # remove Sober-owned symlinks, hook entries, and ~/.sober
 ```
 
-- **`sober install`**: A lightweight installation that only links hooks and deploys global configs quietly.
+- **`sober install`**: A lightweight install that refreshes the shared `~/.sober` source, links only Sober-owned entries, and merges hooks without replacing your config.
 - **`sober setup`**: A comprehensive setup command that runs `install` and downloads additional productivity tools (such as `ast-grep` and `ctx7`).
 
 > [!NOTE]

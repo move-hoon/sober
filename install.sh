@@ -12,7 +12,7 @@ _self="${BASH_SOURCE[0]}"
 if [[ -n "$_self" && "$_self" != "bash" ]]; then
   SCRIPT_DIR="$( cd "$( dirname "$_self" )" && pwd )"
 fi
-if [ -z "${SCRIPT_DIR:-}" ] || [ ! -f "$SCRIPT_DIR/AGENTS.md" ] || [ ! -f "$SCRIPT_DIR/package.json" ]; then
+if [ -z "${SCRIPT_DIR:-}" ] || [ ! -f "$SCRIPT_DIR/.sober/AGENTS.md" ] || [ ! -f "$SCRIPT_DIR/package.json" ]; then
   echo "❌ Run Sober from its package or a clone — sources must sit beside install.sh."
   echo "   npm:    npm install -g getsober && sober install"
   echo "   source: git clone https://github.com/move-hoon/sober.git && cd sober && bash install.sh"
@@ -298,7 +298,7 @@ offer_substrate() {
 # refreshed. READMEs/manuals are human docs and never shipped as agent context.
 deploy_managed_files() {
   local name="$1"
-  local src="$SCRIPT_DIR/.claude/$name"
+  local src="$SCRIPT_DIR/.sober/$name"
   local dest="$SOBER_HOME/$name"
   rm -rf "$dest"; mkdir -p "$dest" "$HOME/.claude/$name"
   # Remove only Sober-owned symlinks so renamed/dropped managed files don't dangle.
@@ -348,7 +348,7 @@ mkdir -p "$SOBER_HOME/skills" "$HOME/.agents/skills" "$HOME/.codex" "$HOME/.code
 #   - a real Codex file → insert/refresh the full Sober text (Codex documents AGENTS.md
 #     loading, not @import expansion)
 #   - a foreign symlink (dotfiles) → leave it and tell the user how to opt in manually
-cp "$SCRIPT_DIR/AGENTS.md" "$SOBER_HOME/AGENTS.md"
+cp "$SCRIPT_DIR/.sober/AGENTS.md" "$SOBER_HOME/AGENTS.md"
 SOBER_BLOCK_START="<!-- SOBER:START -->"
 SOBER_BLOCK_END="<!-- SOBER:END -->"
 link_or_block_spine() {
@@ -403,7 +403,7 @@ if [ -f "$HOME/.claude/settings.json" ]; then
       cp "$HOME/.claude/settings.json" "$HOME/.claude/settings.json.pre-sober.$(date +%Y%m%d%H%M%S)"
       echo "📦 Backed up settings.json before merging Sober hooks"
     fi
-    node "$SCRIPT_DIR/scripts/lib/merge-settings.js" install "$HOME/.claude/settings.json" "$SCRIPT_DIR/.claude/settings.json" \
+    node "$SCRIPT_DIR/.sober/scripts/lib/merge-settings.js" install "$HOME/.claude/settings.json" "$SCRIPT_DIR/.claude/settings.json" \
       && echo "✅ Merged Sober hooks into your existing settings.json (your config preserved)"
   else
     echo "⚠️  node not found — left settings.json untouched. Re-run with node to add Sober hooks."
@@ -415,13 +415,13 @@ fi
 # Codex hooks — same lifecycle guardrails as Claude Code, installed additively in
 # ~/.codex/hooks.json. Existing Codex hooks remain; only Sober-owned handlers are
 # refreshed. Codex will ask the user to trust non-managed hook definitions via /hooks.
-if [ -f "$SCRIPT_DIR/codex/hooks.json" ]; then
+if [ -f "$SCRIPT_DIR/.sober/codex/hooks.json" ]; then
   if command -v node >/dev/null 2>&1; then
     if [ -f "$HOME/.codex/hooks.json" ] && ! grep -q '\.sober/scripts/' "$HOME/.codex/hooks.json"; then
       cp "$HOME/.codex/hooks.json" "$HOME/.codex/hooks.json.pre-sober.$(date +%Y%m%d%H%M%S)"
       echo "📦 Backed up hooks.json before merging Sober Codex hooks"
     fi
-    node "$SCRIPT_DIR/scripts/lib/merge-codex-hooks.js" install "$HOME/.codex/hooks.json" "$SCRIPT_DIR/codex/hooks.json" \
+    node "$SCRIPT_DIR/.sober/scripts/lib/merge-codex-hooks.js" install "$HOME/.codex/hooks.json" "$SCRIPT_DIR/.sober/codex/hooks.json" \
       && echo "✅ Merged Sober hooks into your Codex hooks.json (your hooks preserved)"
   else
     echo "⚠️  node not found — left Codex hooks.json untouched. Re-run with node to add Sober hooks."
@@ -430,10 +430,10 @@ fi
 
 # Codex rules — official Starlark exec-policy layer. Symlink only Sober-owned rule
 # files; preserve any real user rule file with the same name.
-if [ -d "$SCRIPT_DIR/codex/rules" ]; then
+if [ -d "$SCRIPT_DIR/.sober/codex/rules" ]; then
   rm -rf "$SOBER_HOME/codex-rules"
   mkdir -p "$SOBER_HOME/codex-rules" "$HOME/.codex/rules"
-  cp -R "$SCRIPT_DIR/codex/rules/." "$SOBER_HOME/codex-rules/"
+  cp -R "$SCRIPT_DIR/.sober/codex/rules/." "$SOBER_HOME/codex-rules/"
   for src in "$SOBER_HOME"/codex-rules/*.rules; do
     [ -e "$src" ] || continue
     target="$HOME/.codex/rules/$(basename "$src")"
@@ -474,10 +474,10 @@ shopt -u nullglob
 # (~/.claude/skills for Claude, ~/.agents/skills for Codex per its official docs).
 # Do not remove ~/.claude/skills/learned: user-owned.
 for managed_skill in karpathy caveman search-ladder edit-deterministic observe structure-graph sober-review; do
-  if [ -d "$SCRIPT_DIR/.claude/skills/$managed_skill" ]; then
+  if [ -d "$SCRIPT_DIR/.sober/skills/$managed_skill" ]; then
     # single source in ~/.sober
     rm -rf "$SOBER_HOME/skills/$managed_skill"
-    cp -R "$SCRIPT_DIR/.claude/skills/$managed_skill" "$SOBER_HOME/skills/$managed_skill"
+    cp -R "$SCRIPT_DIR/.sober/skills/$managed_skill" "$SOBER_HOME/skills/$managed_skill"
     # symlink both runtimes to the single source. Replace a prior symlink, but
     # never delete a real user skill dir that happens to share the name.
     for runtime_skills in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
@@ -500,9 +500,9 @@ done
 # scripts/ (hooks) — live ONLY in ~/.sober. Sober's settings.json hooks reference
 # ~/.sober/scripts/hooks/*.sh directly, so ~/.claude/scripts is never touched —
 # your own ~/.claude/scripts stays exactly as it is.
-if [ -d "$SCRIPT_DIR/scripts" ]; then
+if [ -d "$SCRIPT_DIR/.sober/scripts" ]; then
   rm -rf "$SOBER_HOME/scripts"
-  cp -R "$SCRIPT_DIR/scripts" "$SOBER_HOME/scripts"
+  cp -R "$SCRIPT_DIR/.sober/scripts" "$SOBER_HOME/scripts"
   # Clean up a stale pre-2.x symlink Sober used to create at ~/.claude/scripts.
   if [ -L "$HOME/.claude/scripts" ]; then
     case "$(readlink "$HOME/.claude/scripts")" in "$SOBER_HOME/scripts") rm -f "$HOME/.claude/scripts" ;; esac

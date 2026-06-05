@@ -47,3 +47,5 @@ coverage/
 # Local evidence files (P7 / L6 metrics - not committed to Git)
 docs/evidence/
 docs/internal/
+# Local unit tests are intentionally kept out of release commits
+tests/unit/

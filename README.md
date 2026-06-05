@@ -118,6 +118,17 @@ The longer reasoning behind these choices is recorded in [`docs/adr/`](docs/adr/
 
 ## What gets installed
 
+### Repository Layout
+
+```text
+.sober/          # canonical shared source: AGENTS, commands, rules, skills, scripts
+.claude/         # Claude templates and visibility
+.codex/          # Codex docs/examples; active hooks stay in .sober/codex
+.agents/         # Codex skills visibility; source stays in .sober/skills
+AGENTS.md        # symlink to .sober/AGENTS.md
+CLAUDE.md        # symlink to AGENTS.md
+```
+
 Sober sets `~/.sober` as the shared configuration source, allowing both Claude Code and Codex CLI to read the same rules and skills. It safely links rules, skills, and hooks into each CLI's native configuration format.
 
 ```text
@@ -140,19 +151,25 @@ Sober sets `~/.sober` as the shared configuration source, allowing both Claude C
 ### File Tree
 
 ```text
-~/.sober/AGENTS.md                 # shared rules source
-~/.sober/skills/<skill>/SKILL.md   # one copy of each skill
+~/.sober/AGENTS.md                    # shared policy source
+~/.sober/commands/*.md                # Sober-owned Claude slash commands
+~/.sober/rules/*.md                   # Sober-owned Claude rules
+~/.sober/skills/<skill>/SKILL.md      # one copy of each skill
+~/.sober/scripts/                     # local hook and verification scripts
+~/.sober/codex-rules/*.rules          # installed copy of .sober/codex/rules
 
 # For Claude Code Users
-~/.claude/CLAUDE.md  -> ~/.sober/AGENTS.md
-~/.claude/AGENTS.md  -> ~/.sober/AGENTS.md
-~/.claude/skills/*   -> ~/.sober/skills/*
-~/.claude/settings.json            # Sober hooks are additively merged here
+~/.claude/CLAUDE.md                   # symlink, or imports ~/.sober/AGENTS.md if file exists
+~/.claude/AGENTS.md                   # symlink, or imports ~/.sober/AGENTS.md if file exists
+~/.claude/commands/<sober-command>.md -> ~/.sober/commands/<sober-command>.md
+~/.claude/rules/<sober-rule>.md       -> ~/.sober/rules/<sober-rule>.md
+~/.claude/skills/<skill>              -> ~/.sober/skills/<skill>
+~/.claude/settings.json               # Sober hooks are additively merged here
 
 # For Codex CLI Users
-~/.codex/AGENTS.md   -> ~/.sober/AGENTS.md
-~/.agents/skills/*   -> ~/.sober/skills/*
-~/.codex/hooks.json                 # Sober hooks are additively merged here
+~/.codex/AGENTS.md                    # symlink, or inline Sober block if file exists
+~/.agents/skills/<skill>              -> ~/.sober/skills/<skill>
+~/.codex/hooks.json                   # Sober hooks are additively merged here
 ~/.codex/rules/sober-critical-actions.rules -> ~/.sober/codex-rules/sober-critical-actions.rules
 ```
 
@@ -215,7 +232,7 @@ Use a separate helper when it pays for itself:
 - exploring a large unfamiliar repository
 - running several truly independent tasks in parallel
 
-Avoid fixed multi-agent chains for everyday work. They often spend more quota than they save. The checklist is in `skills/sober-review`; the actual helper can be Claude Code's native subagent, a Codex helper, or a reviewer you already trust.
+Avoid fixed multi-agent chains for everyday work. They often spend more quota than they save. The checklist is in `.sober/skills/sober-review`; the actual helper can be Claude Code's native subagent, a Codex helper, or a reviewer you already trust.
 
 ---
 

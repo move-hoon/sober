@@ -38,7 +38,7 @@ sober doctor
 
 - **필수 의존성 (Required Deps)**: `jq` 등 Sober 핵심 기능이 동작하기 위해 필요한 도구
 - **선택 도구 (Optional Tools)**: `ast-grep`, Probe, Serena, Context7, `mgrep` 등 작업 비용을 줄여주는 유용한 도구들
-- **런타임 훅 (Hooks)**: 에이전트 자동화 스크립트 (Claude: `~/.claude/settings.json`, Codex: `~/.codex/hooks.json`, 훅 스크립트: `~/.sober/scripts`)
+- **런타임 훅 (Hooks)**: 에이전트 자동화 스크립트 (Claude: `~/.claude/settings.json`, Codex: `~/.codex/hooks.json`, Sober 스크립트: `~/.sober/scripts`)
 
 > [!NOTE]
 > 선택 도구가 없어도 Sober의 기본 기능은 문제없이 동작합니다. 실제 작업 생산성에 도움이 되는 도구만 필요할 때만 설치하면 됩니다.
@@ -157,7 +157,7 @@ src/payments/retry.test.ts:88
 
 대화가 길어져 대화창이 너무 복잡해지면 에이전트에게 요약(`compact`)을 요청하세요. 결정된 사실만 남기고 불필요한 시도 기록은 덜어내는 것이 좋습니다.
 
-Claude Code는 세션이 종료될 때 크기가 제한된 `.claude/HANDOFF.md` 파일을 자동으로 기록합니다. 여기에는 작업 중이던 브랜치, 마지막 커밋, 커밋되지 않은 변경 요약이 담깁니다.
+Sober의 핸드오프 훅은 런타임이 프로젝트 디렉터리를 제공하고 해당 디렉터리가 git 저장소일 때, 세션 종료 시 크기가 제한된 `.claude/HANDOFF.md` 파일을 기록합니다. 여기에는 작업 중이던 브랜치, 마지막 커밋, 커밋되지 않은 변경 요약이 담깁니다.
 
 > [!TIP]
 > 세션을 멈추기 전 아래의 프롬프트를 사용하여 에이전트에게 핵심 요약을 요청하는 것이 좋습니다:
@@ -201,19 +201,19 @@ Claude Code 기준 사용 흐름:
 
 ## 11. 런타임 훅(Runtime Hooks)의 작동 방식 이해
 
-Sober는 Claude Code와 Codex CLI의 사용자 설정에 작은 로컬 훅을 연결합니다. (Claude: `~/.claude/settings.json`, Codex: `~/.codex/hooks.json` 및 `~/.codex/rules/` 명령 실행 규칙)
+Sober는 Claude Code와 Codex CLI의 사용자 설정에 작은 로컬 훅을 연결합니다. Claude는 `~/.claude/settings.json`을 사용하고, Codex는 `~/.codex/hooks.json`과 `~/.codex/rules/`에 연결된 Sober 소유 규칙을 사용합니다.
 
 | 훅 (Hook) 명칭 | 역할 및 기능 |
 |---|---|
 | `critical-action-check` | 시스템을 망가뜨리거나 위험할 수 있는 shell 명령 실행 시도 시 차단 |
 | `verify-gate` | 코드 변경 사항이 발생했음에도 로컬 검증 결과가 확보되지 않은 채 git commit/push 시도 시 경고 |
-| `handoff-write` | 에이전트 세션 정지/종료 시 현재 작업 상태를 `.claude/HANDOFF.md` 파일로 작성 |
+| `handoff-write` | 세션 종료 시 프로젝트 git 저장소가 확인되면 현재 작업 상태를 `.claude/HANDOFF.md` 파일로 작성 |
 | `session-start` | 안전한 환경 변수만 선별해 로드하고 세션 예산 관련 안내 가이드를 제시 |
 | `compact-suggest` | 대화 세션 컨텍스트가 임계치를 초과할 정도로 길어질 때 압축(Compaction) 실행을 제안 |
 | `post-edit-format` | 코드가 편집된 이후 로컬에 설치된 포맷터(prettier 등)를 통해 즉각 자동 포맷팅 처리 |
 | `tool-failure-log` | 도구 실패가 반복될 때 로컬 로그 파일에 오류 패턴을 수집하며, 민감정보 노출 방지를 위해 패턴 마스킹 적용 |
 
-Codex는 `~/.codex/hooks.json` 환경 설정을 통해 Sober 공통 훅들을 동일하게 호출합니다. 특히 Codex에서는 `sober-critical-actions.rules`가 위험한 명령을 한 번 더 확인합니다.
+Codex는 `~/.codex/hooks.json` 환경 설정을 통해 Sober 공통 훅들을 동일하게 호출합니다. 특히 Codex에서는 `~/.sober/codex-rules/`에서 `~/.codex/rules/`로 연결된 `sober-critical-actions.rules`가 위험한 명령을 한 번 더 확인합니다.
 
 > [!NOTE]
 > `verify-gate` 훅은 개발자의 유연한 작업을 위해 실제 `git commit`이나 `push` 명령을 강제로 차단하지 않습니다. 단지 테스트되지 않은 변경 사항이 실수로 배포/공유되는 것을 예방하기 위해 조언성 경고만 화면에 표시합니다.
@@ -237,12 +237,12 @@ ctx7 setup --cli --claude
 ## 13. 업데이트 및 제거하기
 
 ```bash
-sober install      # Sober 파일 및 런타임 심볼릭 링크 최신화
+sober install      # ~/.sober, 런타임 심볼릭 링크, 추가형 훅 병합 최신화
 sober doctor       # 현재 설정 환경 및 상태 자가진단
-sober uninstall    # Sober가 설치한 사용자 훅 설정 및 ~/.sober 제거
+sober uninstall    # Sober 소유 심볼릭 링크, 훅 항목, ~/.sober 제거
 ```
 
-- **`sober install`**: 훅 스크립트 연결 및 전역 설정만 조용히 입히는 최소 경량 설치입니다.
+- **`sober install`**: 공유 원본 `~/.sober`를 갱신하고, Sober 소유 항목만 링크하며, 기존 설정을 덮어쓰지 않고 훅을 병합하는 경량 설치입니다.
 - **`sober setup`**: `install` 과정을 포함하여 추가 외부 유틸리티 도구들(`ast-grep`, `ctx7` 등)까지 한꺼번에 내려받아 세팅하는 종합 환경 구성 명령어입니다.
 
 > [!NOTE]

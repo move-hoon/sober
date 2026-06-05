@@ -1,0 +1,4 @@
+# Optional Codex local config.
+# Copy selected settings into your own ~/.codex/config.toml if needed.
+
+tool_output_token_limit = 12000

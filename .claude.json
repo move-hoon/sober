@@ -1,21 +1,3 @@
 {
-    "mcpServers": {
-        "sequential-thinking": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-sequential-thinking"
-            ]
-        },
-        "_perplexity_disabled_by_default": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@perplexity-ai/mcp-server"
-            ],
-            "env": {
-                "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
-            }
-        }
-    }
+    "mcpServers": {}
 }

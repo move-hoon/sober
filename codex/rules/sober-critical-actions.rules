@@ -1,0 +1,51 @@
+# Sober critical action rules for Codex CLI.
+# Mirrors Claude Code's critical-action guard at the Codex exec-policy layer.
+
+prefix_rule(
+    pattern = ["rm", "-rf", "/"],
+    decision = "forbidden",
+    justification = "Sober blocks deleting the filesystem root. Use a scoped path and verify it first.",
+    match = ["rm -rf /"],
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", "~"],
+    decision = "forbidden",
+    justification = "Sober blocks deleting the home directory. Use a scoped path and verify it first.",
+    match = ["rm -rf ~"],
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", "."],
+    decision = "forbidden",
+    justification = "Sober blocks deleting the current project directory. Use a scoped path and verify it first.",
+    match = ["rm -rf ."],
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", ".git"],
+    decision = "forbidden",
+    justification = "Sober blocks deleting Git metadata. Use git-native rollback instead.",
+    match = ["rm -rf .git"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "prompt",
+    justification = "Sober requires explicit approval before destructive git history/worktree resets.",
+    match = ["git reset --hard", "git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Sober prompts before pushing to a remote. Verify first; avoid force pushes unless explicitly intended.",
+    match = ["git push origin main", "git push origin feature --force", "git push --force-with-lease origin feature"],
+)
+
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "prompt",
+    justification = "Sober prompts before privileged commands. Prefer local, reversible commands where possible.",
+    match = ["sudo make install", "sudo rm -rf /tmp/example"],
+)

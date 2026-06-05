@@ -7,20 +7,20 @@ disable-model-invocation: false
 
 # /analyze-failures Command
 
-Analyze tool failure logs to identify recurring errors and suggest patterns for the `/learn` command.
+Analyze tool failure logs to identify recurring errors and surface durable lessons worth recording.
 
 ## Input
 - `limit` (optional): Number of recent failures to analyze. Default is 50.
 
 ## Execution
-Run the bash script to parse `~/.claude/logs/tool-failures.log`:
+Run the bash script to parse `~/.sober/logs/tool-failures.log`:
 
 ```bash
-bash ~/.claude/scripts/analyze-failures.sh "$ARGUMENTS"
+bash ~/.sober/scripts/analyze-failures.sh "$ARGUMENTS"
 ```
 
 ## How It Works
-1. **Collection**: Failures are automatically logged by `~/.claude/scripts/hooks/tool-failure-log.sh` (Zero-cost).
+1. **Collection**: Failures are automatically logged by `~/.sober/scripts/hooks/tool-failure-log.sh` (Zero-cost).
 2. **Analysis**: This command uses `awk` to aggregate and count errors locally (Zero-cost for generation).
 3. **Insight**: The output summary is added to context, allowing Claude to offer specific advice if needed.
 
@@ -41,9 +41,7 @@ bash ~/.claude/scripts/analyze-failures.sh "$ARGUMENTS"
 
 💡 **Recommendations**:
 - Review frequent failures and update your approach
-- Consider saving learned patterns with `/learn [pattern]`
+- Record any durable lesson in `.claude/HANDOFF.md` (human-reviewed memory, P5)
 ```
 
-## Difference from `/learn`
-- **`/analyze-failures`**: **Quantitative**. Looks at *past errors* from logs. "What went wrong?"
-- **`/learn`**: **Qualitative**. Extracts *successful patterns* from current context. "What went right?"
+This command is **quantitative**: it looks at *past errors* from the logs ("what went wrong?") so you can stop repeating them (P4). Keep lessons in `HANDOFF.md`, not auto-memory.

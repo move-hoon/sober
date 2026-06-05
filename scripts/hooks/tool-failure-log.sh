@@ -19,28 +19,30 @@ ERROR_MSG=$(echo "$INPUT" | jq -r '.error // "unknown error"')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
 
 # Log directory
-LOG_DIR="$HOME/.claude/logs"
+LOG_DIR="$HOME/.sober/logs"
 mkdir -p "$LOG_DIR"
 
 LOG_FILE="$LOG_DIR/tool-failures.log"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
-# Record log
+# Record log. Best-effort redact common credential shapes, collapse newlines,
+# then truncate — so a secret in the error body is not persisted to the local
+# log file verbatim (full errors are still visible in-session).
+ERROR_MSG=$(printf '%s' "$ERROR_MSG" | tr '\n' ' ' | sed -E \
+  -e 's/(sk-|ghp_|gho_|github_pat_|xox[baprs]-|AKIA|ASIA|AIza)[A-Za-z0-9_-]+/[REDACTED]/g' \
+  -e 's/([Bb]earer )[A-Za-z0-9._-]+/\1[REDACTED]/g' \
+  -e 's/(([Aa]pi[_-]?[Kk]ey|[Tt]oken|[Ss]ecret|[Pp]assword|[Aa]uthorization)["'"'"']?[[:space:]]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/g' \
+  -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED_JWT]/g')
+ERROR_MSG="${ERROR_MSG:0:200}"
 echo "[$TIMESTAMP] Tool: $TOOL_NAME | Error: $ERROR_MSG | Session: $SESSION_ID" >> "$LOG_FILE"
 
-# Check for identical tool failures within last 5 minutes (from log file)
-if [ -f "$LOG_FILE" ]; then
-  FIVE_MIN_AGO=$(date -v-5M +"%Y-%m-%d %H:%M:%S" 2>/dev/null || date -d "5 minutes ago" +"%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "")
-  if [ -n "$FIVE_MIN_AGO" ]; then
-    RECENT_FAILURES=$(grep "$TOOL_NAME" "$LOG_FILE" 2>/dev/null | tail -10 | wc -l | tr -d ' ')
-  else
-    RECENT_FAILURES=$(grep -c "$TOOL_NAME" "$LOG_FILE" 2>/dev/null || echo 0)
-  fi
-else
-  RECENT_FAILURES=1
-fi
+# Count how many of the most recent failures were this same tool — a bounded
+# recency window (last 20 entries), fixed-string match on the delimited Tool
+# field so regex/substring quirks in the tool name can't skew the count.
+RECENT_FAILURES=$(tail -n 20 "$LOG_FILE" 2>/dev/null | grep -Fc "Tool: $TOOL_NAME |" || true)
+RECENT_FAILURES=${RECENT_FAILURES:-0}
 
-# Recommend escalation on 3 or more failures
+# Recommend escalation when this tool fails repeatedly in the recent window
 if [ "$RECENT_FAILURES" -ge 3 ]; then
-  echo "[ToolFailure] Tool $TOOL_NAME failed ${RECENT_FAILURES} times. Escalation to @planner or @dplanner recommended." >&2
+  echo "[ToolFailure] Tool $TOOL_NAME failed ${RECENT_FAILURES} times. Re-plan recommended (native plan mode)." >&2
 fi

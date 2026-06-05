@@ -1,40 +1,41 @@
 {
-  "name": "claude-pro-minmax",
-  "version": "1.4.0",
-  "description": "Quota-first routing and safety layer for Claude Code Pro workflows.",
+  "name": "getsober",
+  "version": "2.0.0",
+  "description": "Sober: a shared rules-and-tools harness for Claude Code Pro and Codex Plus that cuts wasted AI quota.",
   "author": "donghoon <move-hoon@users.noreply.github.com>",
   "license": "MIT",
   "type": "commonjs",
   "bin": {
-    "cpmm": "bin/cpmm.js"
+    "sober": "bin/sober.js"
   },
   "files": [
     "bin/",
     "lib/",
-    ".claude.json",
+    "AGENTS.md",
+    "project-template/",
     "install.sh",
-    ".claude/CLAUDE.md",
     ".claude/settings.json",
     ".claude/settings.local.example.json",
     ".claude/agents/",
     ".claude/commands/",
-    ".claude/contexts/",
     ".claude/rules/",
-    ".claude/skills/cli-patterns/",
+    ".claude/skills/",
     ".claudeignore",
+    "codex/",
     "scripts/",
     "README.md",
     "README.ko.md",
+    "CONTRIBUTING.md",
+    "docs/USER-MANUAL.md",
+    "docs/USER-MANUAL.ko.md",
+    "docs/adr/",
     "LICENSE"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
-    "help": "node bin/cpmm.js --help",
-    "setup": "node bin/cpmm.js setup",
-    "doctor": "node bin/cpmm.js doctor",
-    "test": "node bin/cpmm.js --version && node bin/cpmm.js --help"
+    "help": "node bin/sober.js --help",
+    "setup": "node bin/sober.js setup",
+    "doctor": "node bin/sober.js doctor",
+    "test": "node --test tests/unit/*.test.js && node bin/sober.js --version && node bin/sober.js --help"
   },
   "engines": {
     "node": ">=18"
@@ -43,7 +44,8 @@
     "claude",
     "claude-code",
     "claude-pro",
-    "cpmm",
+    "codex",
+    "sober",
     "llmops",
     "devtools",
     "agentic-coding",
@@ -51,10 +53,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/move-hoon/claude-pro-minmax.git"
+    "url": "git+https://github.com/move-hoon/sober.git"
   },
   "bugs": {
-    "url": "https://github.com/move-hoon/claude-pro-minmax/issues"
+    "url": "https://github.com/move-hoon/sober/issues"
   },
-  "homepage": "https://github.com/move-hoon/claude-pro-minmax#readme"
+  "homepage": "https://github.com/move-hoon/sober#readme"
 }

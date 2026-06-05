@@ -14,34 +14,26 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   # Load .env.local if exists (Security: values are not exposed)
   ENV_LOCAL="${CLAUDE_PROJECT_DIR:-.}/.env.local"
   if [ -f "$ENV_LOCAL" ]; then
-    # Extract only variable names and export (values are loaded at runtime)
-    grep -v '^#' "$ENV_LOCAL" | grep '=' | while read -r line; do
+    # Extract only variable names and export (values are loaded at runtime).
+    # Read the file directly (no grep pipeline) so a file with only comments or
+    # blank lines doesn't fail the hook under `set -o pipefail`. Security: emit
+    # only syntactically valid names — lines with `export `, spaces, quotes, or
+    # command substitution fail the regex and are skipped, so a crafted
+    # .env.local cannot poison the sourced env file.
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in \#*|'') continue ;; esac     # skip comments / blank lines
+      case "$line" in *=*) ;; *) continue ;; esac   # require an assignment
       var_name="${line%%=*}"
-      echo "export $var_name=\"\${$var_name:-}\"" >> "$CLAUDE_ENV_FILE"
-    done
-  fi
-fi
-
-# 2. Previous session notification (opt-in, ~30 tokens)
-if [ "${CLAUDE_SESSION_NOTIFY:-0}" = "1" ]; then
-  SESSION_DIR="$HOME/.claude/sessions"
-  RECENT=$(find "$SESSION_DIR" -name "*.md" -mtime -7 2>/dev/null | sort -r | head -1)
-
-  if [ -n "$RECENT" ] && [ -f "$RECENT" ]; then
-    cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "SessionStart",
-    "additionalContext": "📂 Previous session found: $(basename "$RECENT"). To restore: /session-load $(basename "$RECENT" .md)"
-  }
-}
-EOF
+      if [[ "$var_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+        echo "export $var_name=\"\${$var_name:-}\"" >> "$CLAUDE_ENV_FILE"
+      fi
+    done < "$ENV_LOCAL"
   fi
 fi
 
 # 3. Failure log notification (opt-in, ~30 tokens)
 if [ "${CLAUDE_FAILURE_NOTIFY:-0}" = "1" ]; then
-  LOG_FILE="$HOME/.claude/logs/tool-failures.log"
+  LOG_FILE="$HOME/.sober/logs/tool-failures.log"
   if [ -f "$LOG_FILE" ]; then
     FAILURE_COUNT=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
     if [ "$FAILURE_COUNT" -gt 10 ]; then
@@ -57,12 +49,27 @@ EOF
   fi
 fi
 
+# 3b. Handoff notice (opt-in, ~20 tokens) — P5: notify, never auto-inject body.
+if [ "${CLAUDE_HANDOFF_NOTIFY:-0}" = "1" ]; then
+  HANDOFF="${CLAUDE_PROJECT_DIR:-.}/.claude/HANDOFF.md"
+  if [ -f "$HANDOFF" ]; then
+    cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "📝 HANDOFF.md from last session exists. Load deliberately if resuming: Read .claude/HANDOFF.md"
+  }
+}
+EOF
+  fi
+fi
+
 # 4. Message budget reminder (always-on, ~40 tokens)
 cat <<'BUDGET'
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "📊 Pro Plan Strategy: ~45 msg/5h target (short conversations)\n• Default (/do): 2 msg (Batch plan+build+verify)\n• Complex (/plan): 6+ msg (Use for 4+ files)\n• Cost: Haiku(1x) vs Sonnet(3x) vs Opus(5x) | Out=5x In"
+    "additionalContext": "📊 Pro Plan (rough guidance — verify with /measure, don't treat as fact):\n• ~45 msg/5h is a heuristic target, not a guarantee\n• Default: just ask — the spine batches plan+build+verify\n• Complex: native plan mode for 4+ files\n• Approx relative cost: Haiku < Sonnet < Opus; output costs more than input"
   }
 }
 BUDGET

@@ -12,7 +12,9 @@ adapter_info() {
 adapter_verify() {
   cd "$PROJECT_DIR"
   if [[ -f "Makefile" ]]; then
-    make check 2>/dev/null || make test 2>/dev/null || make verify 2>/dev/null || true
+    # Try check/test/verify in order; the last attempt's failure propagates
+    # (no `|| true` — a real failure must fail verification, P3).
+    make check 2>/dev/null || make test 2>/dev/null || make verify
   else
     echo "⚠️ No recognized build system found."
     echo "Supported: Gradle, Maven, npm, pnpm, yarn, Cargo, Go, Poetry, pip"

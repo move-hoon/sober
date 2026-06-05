@@ -1,60 +1,11 @@
 > **[English Version](README.md)**
 
-# Runtime Detection Layer
+# Runtime — 프로젝트 타입 자동 감지
 
-## 목적
-언어 독립적 작업을 위한 OCP 준수 런타임 감지. 코어 스크립트 수정 없이 새 언어 추가 가능.
+이 폴더는 현재 작업 중인 프로젝트가 어떤 종류인지(Node, JVM, Go, Rust, Python 등) 스스로 파악합니다. 알맞은 빌드와 테스트 명령어를 자동으로 실행해주기 때문에 직접 설정할 필요가 없습니다.
 
-## 구조
-
-```
-runtime/
-├── detect.sh         # 프로젝트 런타임 자동 감지
-└── adapters/         # 언어별 구현체
-```
-
-## detect.sh
-
-프로젝트 유형을 자동 감지하고 JSON을 출력합니다.
-
-**사용법:**
-```bash
-# 기본 사용
-./detect.sh
-# 출력: {"runtime":"node","tool":"npm","adapter":"node.sh"}
-
-# 모노레포 지원 (하위 디렉토리)
-./detect.sh --path backend
-# 출력: {"runtime":"jvm","tool":"gradle","adapter":"jvm.sh"}
-```
-
-**감지 우선순위:**
-1. JVM: `build.gradle.kts` > `build.gradle` > `pom.xml`
-2. Node: `package.json` (락 파일로 패키지 매니저 확인)
-3. Rust: `Cargo.toml`
-4. Go: `go.mod`
-5. Python: `pyproject.toml` > `setup.py` > `requirements.txt`
-6. Generic: Makefile로 폴백
-
-## 통합
-
-유니버설 스크립트가 이 레이어를 사용합니다:
-
-```bash
-# scripts/verify.sh
-RUNTIME=$("$RUNTIME_DIR/detect.sh" "$@")
-ADAPTER=$(echo "$RUNTIME" | jq -r '.adapter')
-source "$RUNTIME_DIR/adapters/$ADAPTER"
-adapter_verify
-```
-
-## 새 런타임 추가
-
-`detect.sh`만 업데이트:
-
-```bash
-# 감지 패턴 추가
-[[ -f "$dir/mix.exs" ]] && echo '{"runtime":"elixir","tool":"mix","adapter":"elixir.sh"}' && return
-```
-
-그 다음 `adapters/elixir.sh`에 어댑터 생성.
+## 포함된 내용
+| 파일 / 폴더 | 역할 |
+|---|---|
+| `detect.sh` | 파일(`package.json`이나 `build.gradle` 등)을 살펴보고 프로젝트 타입을 추측합니다. |
+| `adapters/` | 검증 도구에게 각 생태계별로 빌드하고 테스트하는 정확한 방법을 알려줍니다. |

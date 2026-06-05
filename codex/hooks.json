@@ -1,0 +1,78 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/critical-action-check.sh",
+            "timeout": 5,
+            "statusMessage": "Sober: checking dangerous command"
+          },
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/verify-gate.sh",
+            "timeout": 5,
+            "statusMessage": "Sober: checking verify boundary"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/post-edit-format.sh",
+            "timeout": 10,
+            "statusMessage": "Sober: formatting edited file"
+          },
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/compact-suggest.sh",
+            "timeout": 5,
+            "statusMessage": "Sober: checking context budget"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/codex-hooks/tool-failure-log.sh",
+            "timeout": 5,
+            "statusMessage": "Sober: logging failed tool calls"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/session-start.sh",
+            "timeout": 5,
+            "statusMessage": "Sober: loading session guardrails"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/handoff-write.sh",
+            "timeout": 10,
+            "statusMessage": "Sober: writing handoff"
+          }
+        ]
+      }
+    ]
+  }
+}

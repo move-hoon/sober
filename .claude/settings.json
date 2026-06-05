@@ -49,7 +49,6 @@
       "Bash(prettier *)",
       "Bash(eslint *)",
       "Bash(jq *)",
-      "Bash(tmux *)",
       "Bash(./gradlew *)",
       "Bash(gradle *)",
       "Bash(mvn *)",
@@ -84,7 +83,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/critical-action-check.sh",
+            "command": "~/.sober/scripts/hooks/critical-action-check.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.sober/scripts/hooks/verify-gate.sh",
             "timeout": 5
           }
         ]
@@ -96,25 +100,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/post-edit-format.sh",
+            "command": "~/.sober/scripts/hooks/post-edit-format.sh",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/compact-suggest.sh",
+            "command": "~/.sober/scripts/hooks/compact-suggest.sh",
             "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "permission_prompt|idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/hooks/notification.sh",
-            "timeout": 3
           }
         ]
       }
@@ -124,29 +116,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/session-start.sh",
+            "command": "~/.sober/scripts/hooks/session-start.sh",
             "timeout": 5
           }
         ]
       }
     ],
-    "SessionEnd": [
+    "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/session-cleanup.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/hooks/pre-compact.sh",
+            "command": "~/.sober/scripts/hooks/handoff-write.sh",
             "timeout": 10
           }
         ]
@@ -157,7 +138,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/hooks/tool-failure-log.sh",
+            "command": "~/.sober/scripts/hooks/tool-failure-log.sh",
             "timeout": 5
           }
         ]

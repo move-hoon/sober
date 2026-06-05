@@ -9,7 +9,13 @@ TARGET_DIR="$PROJECT_DIR"
 # Parse --path argument for Monorepo support
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --path) TARGET_DIR="$PROJECT_DIR/$2"; shift 2 ;;
+    --path)
+      if [ -z "${2:-}" ]; then echo "Error: --path requires a value" >&2; exit 2; fi
+      case "$2" in
+        /*) TARGET_DIR="$2" ;;                 # absolute path as-is
+        *)  TARGET_DIR="$PROJECT_DIR/$2" ;;     # relative to project root
+      esac
+      shift 2 ;;
     *) shift ;;
   esac
 done

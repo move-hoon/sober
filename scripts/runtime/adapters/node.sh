@@ -39,22 +39,24 @@ adapter_info() {
 
 adapter_verify() {
   ( cd "$PROJECT_DIR"
-    # Type check if TypeScript
+    rc=0
+    # Type check (advisory — tsc presence varies; reported, not gated)
     if [[ -f tsconfig.json ]]; then
-      npx --no-install tsc --noEmit 2>&1 || true
+      npx --no-install tsc --noEmit 2>&1 || echo "⚠️ typecheck reported issues (advisory)"
     fi
 
-    # Lint
+    # Lint (advisory)
     if _has_script "lint"; then
-      _run run lint 2>&1 || true
+      _run run lint 2>&1 || echo "⚠️ lint reported issues (advisory)"
     elif [[ -f .eslintrc.js ]] || [[ -f .eslintrc.json ]] || [[ -f eslint.config.js ]] || [[ -f eslint.config.mjs ]]; then
-      npx --no-install eslint . 2>&1 || true
+      npx --no-install eslint . 2>&1 || echo "⚠️ lint reported issues (advisory)"
     fi
 
-    # Test
+    # Test (authoritative — failure fails verification; P3, no verified-theater)
     if _has_script "test"; then
-      _run test 2>&1 || true
+      _run test 2>&1 || rc=1
     fi
+    return $rc
   )
 }
 

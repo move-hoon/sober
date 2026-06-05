@@ -6,7 +6,11 @@
 set -euo pipefail
 
 LIMIT="${1:-50}"
-LOG_FILE="$HOME/.claude/logs/tool-failures.log"
+# Validate: a non-numeric limit would make `tail -"$LIMIT"` fail. Fall back to 50.
+case "$LIMIT" in
+  ''|*[!0-9]*) LIMIT=50 ;;
+esac
+LOG_FILE="$HOME/.sober/logs/tool-failures.log"
 
 if [ ! -f "$LOG_FILE" ]; then
   echo "✅ No failure logs found. Your tools are working perfectly!"
@@ -139,7 +143,7 @@ echo ""
 echo "💡 **Recommendations**:"
 echo ""
 echo "- Review frequent failures and update your approach"
-echo "- Consider saving learned patterns with \`/learn [pattern]\`"
-echo "- Use \`/do-sonnet\` or \`/plan\` for complex tasks to reduce trial-and-error"
+echo "- Record durable lessons in \`.claude/HANDOFF.md\` (human-reviewed, P5)"
+echo "- Use native plan mode for complex tasks to reduce trial-and-error"
 echo ""
 echo "📝 **Clear logs**: \`rm $LOG_FILE\`"

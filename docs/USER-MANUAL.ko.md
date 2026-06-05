@@ -1,432 +1,259 @@
-# CPMM 사용자 가이드 (설치 후 운영)
+# Sober — 사용자 매뉴얼
 
-이 문서는 `README.ko.md`를 이미 읽고 설치를 끝낸 사용자를 위한 운영 가이드입니다.
-설명보다 실행에 집중합니다: 무엇을, 언제, 어떻게 실행할지.
+Sober는 Claude Code와 Codex CLI가 같은 방식으로 일하도록 돕습니다. 필요한 줄만 찾고, 작게 수정하고, 빨리 검증하고, 짧게 보고하게 만드는 것이 목표입니다. 이 문서는 `sober install`을 마친 후 개발자가 실제로 에이전트와 함께 작업하는 방법을 설명합니다.
 
-## 0. 운영 계약 (한 번만 읽기)
+## 0. 3분 빠른 시작
 
-- 한 작업에는 하나의 주 실행 커맨드를 둡니다.
-- 작업 프롬프트에는 범위 + 제약 + 완료조건을 같이 적습니다.
-- 매 실행 후 다음 커맨드를 즉시 결정합니다. 모호한 상태로 멈추지 않습니다.
+Sober 설치 후 바로 작업을 시작하려면 다음과 같이 진행하세요:
 
-결과 판정:
-- `/review` 결과는 `PASS` 또는 `FAIL`입니다.  
-  `PASS`면 진행, `FAIL`이면 수정 후 변경 경로 기준으로 재리뷰합니다.
-- `/do`의 `반복 실패`는 1차 실패 + 2차 실패(재시도 소진)를 뜻하며, 검증 실패도 포함됩니다.
-- 에스컬레이션은 자동이 아니라 수동입니다. CPMM은 실패 시 다음 커맨드(`/do-sonnet`, `/plan`)를 제안하지만 자동 전환하지 않습니다.
-- `/do`가 반복 실패하면 `/do-sonnet`, 그래도 막히면 필요한 경우에만 `/do-opus`로 승격합니다.
-- 중요 작업 확인 프롬프트가 뜨면 의도적으로 확인하거나 즉시 중단합니다.
-
-## 1. 새 세션 시작 2분 체크리스트
-
-1. 프로젝트 루트로 이동합니다.
-2. 기본 모델을 설정합니다.
+1. 설치 상태를 가볍게 확인합니다:
    ```bash
-   /model haiku
+   sober doctor
    ```
-3. (선택) 필요한 컨텍스트만 로드합니다.
+2. 작업하려는 프로젝트 폴더로 이동하여 Claude를 실행합니다:
    ```bash
-   /load-context --list
-   /load-context backend
+   cd your-project
+   claude
    ```
-4. 첫 작업은 `/do`로 시작합니다.
-5. (선택) 이후 세션에서 최신 공식 라이브러리 문서를 쓰고 싶다면:
+   또는 Codex를 실행합니다:
    ```bash
-   cpmm setup
+   cd your-project
+   codex
+   ```
+3. 평소처럼 자연스럽게 작업을 요청하되, Sober의 습관이 반영되도록 요청해 보세요:
+   ```text
+   이 버그를 고쳐줘. 관련 위치를 먼저 찾고, 최소 변경으로 수정한 뒤 테스트까지 확인해줘.
    ```
 
-interactive 모드에서는 `cpmm setup`이 권장 Context7 경로 전체를 제안할 수 있습니다.
+> [!NOTE]
+> 전역 설치만으로도 Sober는 문제없이 동작합니다. 프로젝트별 전용 규칙이나 `HANDOFF.md` 공유 메모리가 필요할 때만 `sober template .`을 실행하세요.
 
-공식 수동 설정 경로:
+## 1. 설치 상태 확인
 
 ```bash
+sober doctor
+```
+
+각 항목의 의미는 다음과 같습니다:
+
+- **필수 의존성 (Required Deps)**: `jq` 등 Sober 핵심 기능이 동작하기 위해 필요한 도구
+- **선택 도구 (Optional Tools)**: `ast-grep`, Probe, Serena, Context7, `mgrep` 등 작업 비용을 줄여주는 유용한 도구들
+- **런타임 훅 (Hooks)**: 에이전트 자동화 스크립트 (Claude: `~/.claude/settings.json`, Codex: `~/.codex/hooks.json`, 훅 스크립트: `~/.sober/scripts`)
+
+> [!NOTE]
+> 선택 도구가 없어도 Sober의 기본 기능은 문제없이 동작합니다. 실제 작업 생산성에 도움이 되는 도구만 필요할 때만 설치하면 됩니다.
+
+## 2. 프로젝트에 Sober 추가 (선택 사항)
+
+프로젝트별 규칙이나 `HANDOFF.md`가 필요할 때만 아래 명령을 실행하세요:
+
+```bash
+sober template .
+# 만약 ast-grep 템플릿 설정까지 함께 생성하고 싶다면:
+sober template . --with-sgconfig
+```
+
+> [!NOTE]
+> `sober template` 명령어는 기존 소스 코드를 절대로 수정하거나 덮어쓰지 않으며, 오직 규칙 구성 파일만 안전하게 추가합니다.  
+> 생성된 파일들은 에이전트(Claude Code / Codex CLI)가 세션을 시작할 때 프로젝트 루트 경로에서 자동으로 읽어 들입니다. 개발자가 규칙 내용을 채팅창에 직접 복사해서 전달할 필요가 없습니다.
+
+이 명령은 현재 디렉터리에 다음 파일들을 생성합니다:
+
+| 생성 파일 | 용도 |
+|---|---|
+| `AGENTS.md` | 프로젝트 전용 규칙과 Sober 공통 규칙 |
+| `CLAUDE.md` | Claude Code가 `AGENTS.md`를 읽도록 연결하는 링크 |
+| `HANDOFF.md` | 다음 세션에서 참고할 작업 메모 |
+| `sgconfig.yml` | ast-grep 시작 설정 (선택 사항) |
+
+> [!IMPORTANT]
+> `AGENTS.md` 파일에서 프로젝트 고유의 룰과 비즈니스 컨텍스트만 커스텀하여 편집하세요. Sober가 제어하는 공통 코어 규칙 영역은 그대로 유지하는 것이 좋습니다.
+
+## 3. 작업 지시 시작하기
+
+AI 에이전트에게는 한 번에 하나의 명확한 작업을 요청하는 것이 가장 좋습니다:
+
+```text
+결제 재시도 timeout 값을 3초에서 5초로 늘려줘.
+그 외의 비즈니스 로직과 동작은 유지해야 해.
+기존 payment 관련 테스트 코드를 실행하여 검증해줘.
+```
+
+효과적인 작업 지시 프롬프트에는 다음 내용이 포함됩니다:
+- 구체적인 최종 결과물 정의
+- 변경하지 않고 유지해야 할 범위 제약
+- 완료 여부를 증명할 구체적인 테스트나 검증 방식
+- 작업 대상이 될 파일 경로, 모듈명, 또는 관련 API 정보
+
+> [!WARNING]
+> "이 프로젝트 리팩토링해줘"와 같은 모호하고 넓은 요청은 비용을 크게 낭비합니다. 명확한 정지 조건(Stop condition)을 함께 적지 않는다면 이러한 요청은 피하는 것이 좋습니다.
+
+## 4. 코드 탐색 시 "줄 단위 위치 특정" 유도
+
+Sober의 기본 습관은 파일을 통째로 읽기 전에 필요한 위치를 먼저 찾는 것입니다.
+
+권장하는 검색 단계:
+1. 정확한 매칭 텍스트는 `ripgrep` 사용
+2. 코드의 구조적 형태는 `ast-grep` 또는 Probe 사용
+3. 특정 클래스/메서드 등 심볼 참조 정보는 Serena 사용
+4. 개념적이거나 추상적인 질문일 때만 최후의 수단으로 시맨틱 검색 사용
+
+권장하는 탐색 결과 예시:
+```text
+src/payments/retry.ts:42
+src/payments/retry.test.ts:88
+```
+
+> [!TIP]
+> 에이전트가 파일 내용 전체를 콘솔에 출력하려 한다면 이는 비효율적인 패턴입니다. 에이전트에게 `file:line` 정보와 주변의 핵심 코드 몇 줄만 출력하도록 유도하세요.
+
+## 5. 가장 안전하고 저렴한 편집 방식 선택
+
+변경 범위에 맞는 가장 작은 편집 방식을 고르세요:
+
+| 코드 변경 수준 | 권장 편집 방식 |
+|---|---|
+| 단일 파일 내 로컬 로직 변경 | 일반 patch 파일 적용 |
+| 여러 파일에 걸친 반복적/구조적 변경 | `ast-grep --rewrite`로 미리보기를 검토한 뒤 일괄 적용 |
+| 타입 있는 함수/클래스/변수 이름 변경 | Serena를 통한 타입 안전한 이름 변경 |
+| 규모가 크고 영향도를 예측하기 힘든 리팩토링 | 점진적 실행 계획 수립 후, 작은 단위로 변경과 검증을 반복 |
+
+변경할 줄 수가 적음에도 불구하고 에이전트가 파일 전체를 새로 작성하여 덮어쓰려 하지 않도록 유도해 주세요.
+
+## 6. 완료 처리 전 반드시 검증 수행
+
+작업이 완료되었다고 선언하기 전에 Sober 검증 스크립트를 실행합니다:
+
+```bash
+~/.sober/scripts/verify.sh
+```
+
+모노레포 환경 등 특정 서브 디렉터리만 검증하려면 다음과 같이 실행합니다:
+```bash
+~/.sober/scripts/verify.sh --path packages/api
+```
+
+이 검증 스크립트는 Node.js, JVM, Rust, Go, Python 및 일반 `make` 파일 등 프로젝트의 기술 스택을 자동으로 감지해 테스트를 빌드하고 구동합니다. 자동 감지가 맞지 않으면, 변경을 확인할 수 있는 가장 작은 테스트 명령을 직접 지정해 주세요.
+
+> [!TIP]
+> 테스트 코드 구동에 로컬 환경 변수가 필요하다면, 프로젝트 루트에 `.env` 또는 `.env.local` 파일이 올바르게 구성되어 있는지 먼저 확인해 주세요.
+
+> [!IMPORTANT]
+> 작업 완료는 방금 실행한 테스트 결과나 빌드 결과를 확인한 뒤에만 믿는 것이 좋습니다.
+
+## 7. 에이전트가 루프에 빠지거나 막힐 때
+
+에이전트가 동일한 가설을 반복해서 제시하며 무의미하게 재시도하고 있다면 흐름을 끊어주는 것이 좋습니다.
+
+1. 지시한 작업의 범위를 더 작게 쪼개세요.
+2. 코드를 즉시 편집하기 전에 수정할 계획(Plan)을 먼저 2~3줄로 요약해 달라고 하세요.
+3. 검색 도구로 수집했던 코드 분석 정보를 다시 확인하도록 유도하세요.
+4. 동일한 편집 시도가 3회 연속 실패한다면 세션을 멈추고 처음부터 설계를 다시 점검해야 합니다.
+5. 도구 자체의 오류가 계속 발생하면 Claude Code 환경에서는 `/analyze-failures` 명령을 실행해 문제점을 분석하세요.
+
+에이전트에게 무조건 "더 시도해봐"라고 재촉하는 것은 비용만 낭비할 뿐입니다. 다음 행동 지침을 재설정하는 데 집중하십시오.
+
+## 8. 긴 대화 요약(Compaction)과 세션 핸드오프
+
+대화가 길어져 대화창이 너무 복잡해지면 에이전트에게 요약(`compact`)을 요청하세요. 결정된 사실만 남기고 불필요한 시도 기록은 덜어내는 것이 좋습니다.
+
+Claude Code는 세션이 종료될 때 크기가 제한된 `.claude/HANDOFF.md` 파일을 자동으로 기록합니다. 여기에는 작업 중이던 브랜치, 마지막 커밋, 커밋되지 않은 변경 요약이 담깁니다.
+
+> [!TIP]
+> 세션을 멈추기 전 아래의 프롬프트를 사용하여 에이전트에게 핵심 요약을 요청하는 것이 좋습니다:
+> `"지금까지 검증 완료된 사실, 남은 리스크 요인, 그리고 다음에 이어서 실행해야 할 명령어만 짧게 요약해줘."`
+> 그리고 다음 새로운 세션에서 작업을 이어 시작할 때, 이 `HANDOFF.md` 파일 정보를 먼저 읽고 시작하도록 유도해야 합니다. 에이전트 내부에 자동으로 주입되는 숨겨진 영구 메모리가 아니기 때문입니다.
+
+## 9. 새로운 도구/규칙 추가 전의 정량적 측정
+
+스킬, 프로젝트 규칙, 훅 스크립트 등을 새로 추가하기 전후에 반드시 동일한 작업에 대한 정량 비포/애프터 테스트를 거치는 것이 좋습니다.
+
+Claude Code 기준 사용 흐름:
+```text
+/measure baseline
+# 변경하고자 하는 도구/규칙/스킬 세팅을 정확히 1개 적용합니다.
+/measure after
+```
+
+비교하여 모니터링해야 할 주요 지표:
+- **작업당 읽은 파일 수 (Files read/task)**: 낮을수록 에이전트가 컨텍스트를 좁고 명확하게 이해하고 있음을 의미합니다.
+- **출력 토큰 양 (Output tokens)**: 낮을수록 답변 도중 소모되는 토큰 쿼터 요금이 절약됩니다.
+- **대화창 사용량 (Peak context fill)**: 낮을수록 대화가 너무 길어져 요약해야 하는 상황이 줄어듭니다.
+- **왕복 메시지 수 (Messages/turns)**: 낮을수록 불필요한 질문과 대답이 최소화되었음을 나타냅니다.
+- **재시도 빈도 (Retry rate)**: 낮을수록 오류 루프에 덜 빠진다는 의미입니다.
+- **실패 시 수정된 파일 수**: 낮을수록 잘못된 편집 시 에이전트가 엉뚱한 파일을 수정하는 반경이 좁음을 뜻합니다.
+
+> [!CAUTION]
+> 위의 주요 지표 중 하나라도 이전보다 악화된다면, 해당 도구/규칙 추가를 되돌리는 것이 좋습니다.
+
+## 10. 커밋하기 전에 자체 코드 리뷰 거치기
+
+중요도가 높거나 파일 변경이 많은 경우 작업 결과를 커밋하기 전에 `sober-review`를 실행합니다. 이는 코드를 스스로 수정하게 만드는 것이 아니라 품질 점검용 체크리스트를 실행하기 위함입니다.
+
+리뷰 지시 프롬프트 예시:
+```text
+이번 변경 사항(diff)에 대해 sober-review 체크리스트를 실행해줘.
+오류 사항이 없다면 PASS, 수정이 필요하다면 ISSUES와 원인만 간략히 보고해줘.
+직접 코드를 수정(edit)하려 하지 말고 읽기 전용으로만 평가해.
+```
+
+리뷰 과정에서는 코드의 정확성, 범위의 적정성, 불필요한 복잡성 여부, 스타일 일관성, 적절한 검증 여부, 그리고 기본적인 보안 취약점을 종합적으로 검토하게 됩니다.
+
+## 11. 런타임 훅(Runtime Hooks)의 작동 방식 이해
+
+Sober는 Claude Code와 Codex CLI의 사용자 설정에 작은 로컬 훅을 연결합니다. (Claude: `~/.claude/settings.json`, Codex: `~/.codex/hooks.json` 및 `~/.codex/rules/` 명령 실행 규칙)
+
+| 훅 (Hook) 명칭 | 역할 및 기능 |
+|---|---|
+| `critical-action-check` | 시스템을 망가뜨리거나 위험할 수 있는 shell 명령 실행 시도 시 차단 |
+| `verify-gate` | 코드 변경 사항이 발생했음에도 로컬 검증 결과가 확보되지 않은 채 git commit/push 시도 시 경고 |
+| `handoff-write` | 에이전트 세션 정지/종료 시 현재 작업 상태를 `.claude/HANDOFF.md` 파일로 작성 |
+| `session-start` | 안전한 환경 변수만 선별해 로드하고 세션 예산 관련 안내 가이드를 제시 |
+| `compact-suggest` | 대화 세션 컨텍스트가 임계치를 초과할 정도로 길어질 때 압축(Compaction) 실행을 제안 |
+| `post-edit-format` | 코드가 편집된 이후 로컬에 설치된 포맷터(prettier 등)를 통해 즉각 자동 포맷팅 처리 |
+| `tool-failure-log` | 도구 실패가 반복될 때 로컬 로그 파일에 오류 패턴을 수집하며, 민감정보 노출 방지를 위해 패턴 마스킹 적용 |
+
+Codex는 `~/.codex/hooks.json` 환경 설정을 통해 Sober 공통 훅들을 동일하게 호출합니다. 특히 Codex에서는 `sober-critical-actions.rules`가 위험한 명령을 한 번 더 확인합니다.
+
+> [!NOTE]
+> `verify-gate` 훅은 개발자의 유연한 작업을 위해 실제 `git commit`이나 `push` 명령을 강제로 차단하지 않습니다. 단지 테스트되지 않은 변경 사항이 실수로 배포/공유되는 것을 예방하기 위해 조언성 경고만 화면에 표시합니다.
+
+## 12. 외부 API 수정이 잦을 땐 최신 공식 문서 활용
+
+모델이 기억하는 오래된 정보보다, 현재 프로젝트의 최신 패키지 문서나 API 문서를 우선해서 반영해야 버그가 없습니다.
+
+```bash
+sober setup
+# 혹은 직접 개별 패키지로 설치하고자 하는 경우:
 npm install -g ctx7
 ctx7 setup --cli --claude
 ```
 
-설정 후에는 공식 Context7가 최신 라이브러리 문서 조회를 처리합니다. `/llms-txt`는 raw `/llms.txt` 내용이나 직접 docs URL이 필요할 때만 사용하세요.
-
-권장 검증:
-
-```bash
-command -v ctx7
-ctx7 --version
-cpmm doctor
+그 이후 세션 대화방에서 다음과 같이 자연스럽게 문서를 요청하면 됩니다:
+```text
+"ctx7을 사용해서 <패키지 이름>의 최신 API 문서를 찾아서 사용해줘."
 ```
 
-## 2. 10초 커맨드 선택표
-
-| 상황 | 사용할 커맨드 | 예시 |
-|---|---|---|
-| 작고 명확한 작업 (1-3 파일) | `/do` | `/do Fix null check in user service and add minimal test.` |
-| 여러 파일 기능 (4+ 파일) 또는 구조 판단 필요 | `/plan` | `/plan Add JWT refresh flow with rotation.` |
-| 구현 없이 설계안만 필요 | `/plan --no-build` | `/plan --no-build Propose DB migration strategy for billing.` |
-| 심층 조사 필요 (Sequential Thinking + Perplexity + 공식 Context7 설치 시) | `/dplan` | `/dplan Analyze race conditions in payment retries.` |
-| `/do`가 복잡 로직에서 반복 실패 | `/do-sonnet` | `/do-sonnet Implement conflict-safe cache invalidation.` |
-| Sonnet도 막히거나 매우 중요한 결정 | `/do-opus` | `/do-opus Resolve deadlock risk in transaction coordinator.` |
-| 머지 전 코드 점검 | `/review` | `/review src/auth/` |
-| 보안 중심 점검 | `/review --security` | `/review --security src/auth/` |
-| 작업 중단 전 상태 저장 | `/session-save` | `/session-save auth-refresh` |
-| 이름 지정하여 이전 작업 재개 | `/session-load` | `/session-load auth-refresh` |
-| 인자 없이 최근 세션 재개 | `/session-load` | `/session-load` |
-| 로드 전 저장 세션 목록 확인 | `/session-load --list` | `/session-load --list` |
-| 단계 전환 시 컨텍스트 정리 안내 받기 | `/compact-phase` | `/compact-phase implementation` |
-| 심층 계획 후 컨텍스트 정리 | `/compact-phase deep-planning` | `/compact-phase deep-planning` |
-| 테스트/빌드 장기 모니터링 | `/watch` | `/watch tests` |
-| 사용자 지정 장기 명령 모니터링 | `/watch custom` | `/watch custom \"pnpm test:e2e --watch\"` |
-| 컨텍스트 템플릿 로드 (≤2개 권장) | `/load-context` | `/load-context backend` |
-| 저장된 세션 컨텍스트 로드 | `/load-context session` | `/load-context session` |
-| 세션 자동 분석으로 패턴 추출 | `/learn` | `/learn` |
-| 특정 패턴 직접 저장 | `/learn` | `/learn "Use DTO mappers for API responses"` |
-| 저장된 패턴 목록 확인 | `/learn --show` | `/learn --show` |
-| 도구 실패 패턴 분석 (기본: 최근 50건) | `/analyze-failures` | `/analyze-failures 100` |
-| raw llms.txt 또는 직접 docs URL 조회 | `/llms-txt` | `/llms-txt nextjs` |
-
-> **참고:**
-> - `/compact-phase`는 자동으로 압축하지 **않습니다**. `/compact [instructions]` 명령을 출력하므로, 이를 복사하여 직접 실행하세요.
-> - `/review`는 6가지 카테고리를 검사합니다: **SEC** (보안) · **TYPE** (타입 안전) · **PERF** (성능) · **LOGIC** (로직 오류) · **STYLE** (컨벤션) · **TEST** (누락 테스트).
-> - 컨텍스트를 3개 이상 로드하면 경고가 표시됩니다. 최적 성능을 위해 ≤2개로 유지하세요.
-
-## 2.1 목표별 네비게이션 (목표 -> 완료 신호)
-
-| 목표 | 시작 커맨드 | 완료 신호 | 다음 액션 |
-|---|---|---|---|
-| 작은 수정 반영 | `/do` | 코드+검증 완료 | `/review [path]` |
-| 복잡 기능 구현 | `/plan` | 플랜 승인 + 구현 완료 | `/review --all` |
-| 설계안만 먼저 확보 | `/plan --no-build` | 실행 가능한 플랜 확보 | `/do` 또는 `/do-sonnet` 실행 |
-| 고난도 불확실성 조사 | `/dplan` | 검증된 선택지 확보 | 선택지 확정 후 실행 |
-| 보안 게이트 통과 | `/review --security` | 보안 리뷰 PASS | 머지/릴리즈 진행 |
-| 안전하게 중단 | `/session-save` | 세션 파일 저장 완료 | `/session-load`로 재개 |
-| 이전 상태 확인 후 재개 | `/session-load --list` | 대상 세션 식별 완료 | `/session-load [name]` |
-| 비대해진 컨텍스트 정리 | `/compact-phase` | 단계 기준 정리 완료 | 현재 워크플로우 계속 |
-
-## 2.2 RTK 선택 통합
-
-적용: `git`, 테스트 러너, 빌드처럼 Bash 비중이 높은 워크플로우에서 RTK의 출력 축약 효과를 쓰고 싶을 때.
-
-활성화:
-```bash
-rtk init -g --hook-only
-cpmm setup
-cpmm doctor
-```
-
-권장 검증:
-1. `/hooks`에서 CPMM hook과 RTK hook이 모두 보이는지 확인
-2. 위험 명령이 여전히 CPMM에서 먼저 차단되는지 확인
-3. `cpmm doctor`로 CPMM이 RTK hook 순서 / timeout을 복원했는지 확인
-4. 실제 세션 후 아래 명령으로 효과 확인
-   ```bash
-   rtk gain --quota --tier pro
-   ```
-
-권장 글로벌 hook 순서 (`~/.claude/settings.json`):
-- `~/.claude/scripts/hooks/critical-action-check.sh` (`timeout: 5`)
-- `~/.claude/hooks/rtk-rewrite.sh` (`timeout: 10`)
-
-롤백:
-```bash
-rtk init -g --uninstall
-```
-
-## 3. 시나리오별 실행 런북
-
-### 시나리오 1: 빠른 버그 수정
-
-적용: 버그 1건, 범위가 명확하고 파일 수가 적을 때.
+## 13. 업데이트 및 제거하기
 
 ```bash
-/model haiku
-/do Fix off-by-one error in pagination and add a regression test.
-/review src/pagination/
+sober install      # Sober 파일 및 런타임 심볼릭 링크 최신화
+sober doctor       # 현재 설정 환경 및 상태 자가진단
+sober uninstall    # Sober가 설치한 사용자 훅 설정 및 ~/.sober 제거
 ```
 
-`/do`가 2회 실패하면:
-```bash
-/do-sonnet Fix off-by-one error in pagination and add a regression test.
-```
+- **`sober install`**: 훅 스크립트 연결 및 전역 설정만 조용히 입히는 최소 경량 설치입니다.
+- **`sober setup`**: `install` 과정을 포함하여 추가 외부 유틸리티 도구들(`ast-grep`, `ctx7` 등)까지 한꺼번에 내려받아 세팅하는 종합 환경 구성 명령어입니다.
 
-### 시나리오 2: 여러 파일에 걸친 기능 추가
+> [!NOTE]
+> `sober template` 명령어가 개발 프로젝트 내부에 생성한 `AGENTS.md` 및 `HANDOFF.md` 등의 파일들은 일반 소스 코드 파일과 동일하므로, 일반적인 git 파일 삭제/수정 방식으로 관리하시면 됩니다.
 
-적용: 모듈/레이어를 넘는 신규 기능.
+## 14. 자주 겪는 문제 해결 가이드 (Troubleshooting)
 
-```bash
-/plan Add password reset flow (API, service, email template, tests).
-```
-
-플랜 확인 후:
-1. 구현 진행 승인
-2. 구현 후
-   ```bash
-   /review src/auth/
-   ```
-
-### 시나리오 3: 구현 전 설계 합의만 필요
-
-적용: 먼저 설계 결론이 필요한 작업.
-
-```bash
-/plan --no-build Design multi-tenant workspace isolation.
-```
-
-합의 후 `/do` 또는 `/do-sonnet`으로 구현합니다.
-
-### 시나리오 4: 도메인이 낯설거나 난도가 높은 문제
-
-적용: 경쟁 상태, 분산 처리, 복잡 의사결정.
-
-```bash
-/dplan Validate idempotency + locking strategy for payment retries.
-```
-
-검증된 설계를 실행 태스크로 분해해 진행합니다.
-
-### 시나리오 5: `/do`가 계속 실패
-
-적용: 같은 작업이 재시도 후에도 실패할 때.
-
-순서:
-1. 작업 문장을 더 구체화해 재시도
-2. Sonnet 승격
-   ```bash
-   /do-sonnet [same task, clearer constraints]
-   ```
-3. 여전히 막히고 임계 작업이면
-   ```bash
-   /do-opus [same task + failure context]
-   ```
-4. 계속 실패하면 작업 단위를 더 쪼개서 Haiku/Sonnet부터 재시작
-
-### 시나리오 6: 머지 전 품질 게이트
-
-적용: 구현 완료 후 배포/머지 직전.
-
-```bash
-/review --all
-/review --security src/
-```
-
-이슈 수정 후 변경 경로 기준으로 재리뷰합니다.
-
-### 시나리오 7: 보안 민감 변경
-
-적용: 인증/인가/시크릿/결제.
-
-```bash
-/plan Add role-based permission checks for admin endpoints.
-/review --security src/auth/
-/review --security src/api/
-```
-
-### 시나리오 8: 장시간 테스트/빌드 관찰
-
-적용: watch 모드, 장시간 프로세스.
-
-```bash
-/watch tests
-# 또는
-/watch dev
-# 또는
-/watch build
-```
-
-tmux 기본 제어:
-- 분리: `Ctrl+b d`
-- 재접속: `tmux attach -t claude-watch-tests`
-- 세션 목록: `tmux ls`
-- 세션 종료: `tmux kill-session -t claude-watch-tests`
-
-사용자 지정 모니터링 예시:
-```bash
-/watch custom "pnpm test:e2e --watch"
-```
-
-### 시나리오 9: 오늘 작업 저장 후 내일 재개
-
-중단 전:
-```bash
-/session-save checkout-refactor
-```
-
-> **보안:** `/session-save`는 세션 파일 작성 전에 API 키, 토큰, 비밀번호 등 15+ 패턴의 시크릿을 자동으로 제거합니다. 수동 정리가 필요 없습니다.
-
-재개 시:
-```bash
-/session-load --list
-/session-load checkout-refactor
-```
-
-### 시나리오 10: 작업 초점 전환 (백엔드 <-> 프론트엔드)
-
-적용: 현재 세션의 초점이 크게 바뀔 때.
-
-```bash
-/load-context --list
-/load-context frontend
-/load-context session
-/compact-phase planning
-```
-
-현재 작업에 필요한 컨텍스트만 유지합니다.
-
-### 시나리오 11: 같은 실수/재작업 반복
-
-적용: 비슷한 수정이 계속 발생할 때.
-
-```bash
-/learn "Always validate request DTO before service call"
-/learn --show
-```
-
-### 시나리오 12: 도구 오류가 반복 누적됨
-
-적용: edit/grep 등 툴 실패가 잦을 때.
-
-```bash
-/analyze-failures 100
-```
-
-분석 결과를 `/learn`으로 규칙화합니다.
-
-### 시나리오 13: Raw llms.txt 문서 필요
-
-적용: raw `/llms.txt` 내용이나 직접 docs URL이 필요할 때.
-
-최신 공식 라이브러리 문서는 공식 Context7 설정 후 자연어로 요청하면 공식 Context7가 처리합니다.
-
-```bash
-/llms-txt nextjs
-/llms-txt prisma
-/llms-txt https://example.com/llms.txt
-```
-
-### 시나리오 14: 세션 컨텍스트가 비대해짐
-
-적용: 대화가 길어져 정확도/속도가 떨어질 때.
-
-```bash
-/compact-phase planning
-# 또는
-/compact-phase implementation
-# 또는
-/compact-phase review
-# 또는
-/compact-phase deep-planning
-```
-
-> **동작 방식:** `/compact-phase`는 자동으로 압축하지 않습니다. 맞춤형 `/compact [instructions]` 명령을 출력하므로, 이를 복사하여 직접 실행하세요. 시스템은 75% 컨텍스트 도달 시 자동 압축도 수행합니다 (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=75`).
-
-## 4. 일상 운영 루프
-
-### A. 일반 개발 루프
-
-1. `/model haiku`
-2. `/do [task]`
-3. `/review [changed path]`
-4. 반복
-5. 종료 전 `/session-save [name]`
-
-### B. 복잡 기능 루프
-
-1. `/plan [feature]`
-2. 플랜 승인
-3. 구현 진행
-4. `/review --all`
-5. `/review --security [critical paths]`
-
-### C. 조사 후 실행 루프
-
-1. `/dplan [problem]`
-2. 설계안 선택
-3. `/do` 또는 `/do-sonnet` 실행
-4. `/review`로 검증
-
-## 5. 에스컬레이션 운영 규칙
-
-- 기본 실행: `Haiku + /do`
-- 필요할 때만 단계적으로 승격:
-  1. `/do-sonnet`
-  2. `/do-opus`
-- 장애가 해소되면 고비용 모델에 머물지 않습니다.
-- 후속 루틴 작업은 Haiku/Sonnet으로 복귀합니다.
-
-## 6. 복붙 템플릿
-
-### 작은 수정
-```bash
-/do Fix [bug] in [file/path]. Add minimal test. Keep diff small.
-```
-
-### 복잡 구현
-```bash
-/plan Implement [feature]. Include affected files, migration impact, and test plan.
-```
-
-### 깊은 조사
-```bash
-/dplan Investigate [issue]. Compare at least two design options with risks.
-```
-
-### 보안 점검
-```bash
-/review --security [path]
-```
-
-### 리뷰 결과 해석
-- `PASS`: 머지/릴리즈 흐름으로 진행합니다.
-- `FAIL`: 지적 사항을 수정하고 변경 경로 기준으로 `/review`를 다시 실행합니다.
-
-### 작업 종료
-```bash
-/session-save [feature-name]
-```
-
-## 7. 피해야 할 패턴
-
-- `/do-opus`를 기본값처럼 사용하는 것
-- 한 번에 끝낼 수 있는 작업을 지나치게 잘게 `/do`로 쪼개는 것
-- 비단순 변경에서 `/review` 없이 머지하는 것
-- 필요 이상으로 컨텍스트를 많이 로드하는 것
-- 컨텍스트가 오염된 세션을 정리 없이 계속 쓰는 것
-- 롤백 이후 변경/미추적 파일 상태 확인 없이 바로 다음 작업으로 넘어가는 것
-
-## 8. 빠른 복구표
-
-| 문제 | 즉시 조치 |
+| 증상 및 현상 | 우선 확인 및 조치 사항 |
 |---|---|
-| `/do` 2회 실패 | 작업 범위를 명확히 하고 `/do-sonnet` |
-| Sonnet도 실패한 핵심 작업 | 제약을 명시해 `/do-opus` |
-| 출력 품질이 점점 흔들림 | `/compact-phase [current phase]` |
-| 지금 당장 종료해야 함 | `/session-save [name]` |
-| 이전 진척이 기억 안 남 | `/session-load --list` 후 대상 로드 |
-| 도구 에러 반복 | `/analyze-failures` 후 `/learn` |
-
-`/do` 실패로 롤백이 발생했다면:
-1. `git status`로 현재 상태 확인
-2. 유지할 파일과 정리할 파일 분리
-3. 필요 없는 임시 파일은 수동 정리
-
-## 9. 백그라운드 시스템 동작
-
-아래 훅은 자동 실행됩니다. 별도 명령 불필요 — 표시되는 메시지의 의미만 알아두세요.
-
-| 트리거 | 동작 | 표시 메시지 |
-|---|---|---|
-| 세션 시작 | Pro Plan 전략 요약 표시 (비용 비율, 메시지 목표) | `📊 Pro Plan Strategy: ~45 msg/5h...` |
-| Write/Edit 25회 | 컴팩트 안내 (advisory) | `[COMPACT-ADVISORY] 25 tool calls...` |
-| Write/Edit 50회 | 컴팩트 경고 (warning) | `[COMPACT-WARNING] 50 tool calls...` |
-| Write/Edit 75회 | 컴팩트 긴급 (critical) | `[COMPACT-CRITICAL] 75 tool calls...` |
-| 컨텍스트 75% 도달 | 자동 컴팩트 발동 (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=75`) | 자동 컨텍스트 축소 |
-| 도구 실패 (매회) | `~/.claude/logs/tool-failures.log`에 기록 | 무음 (`/analyze-failures`로 확인) |
-| 파일 편집 | 자동 포맷 실행 (prettier / black / gofmt / rustfmt) | 무음 |
-| `/compact` 실행 전 | 사전 컴팩트 훅이 현재 상태를 `~/.claude/sessions/`에 저장 | 무음 |
-| 세션 종료 | 자동 요약 저장 + 시크릿 제거 | 무음 |
-| 빌더 재시도 한도 (2×) | 빌더 서브에이전트 중단, 에스컬레이션 제안 | `RETRY_CAP: 2 consecutive failures detected.` |
-
-**선택적 환경 변수** (`.claude/settings.json` → `env`):
-
-| 변수 | 기본값 | 설명 |
-|---|---|---|
-| `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | `75` | 자동 컴팩트 발동 컨텍스트 % 임계값 |
-| `CLAUDE_SESSION_NOTIFY` | `0` | `1`로 설정 시 세션 시작 때 이전 세션 자동 감지 |
-| `CLAUDE_FAILURE_NOTIFY` | `0` | `1`로 설정 시 누적 실패 10건 이상에서 `/analyze-failures` 자동 권유 |
+| 에이전트가 Sober 훅을 찾지 못한다고 경고할 때 | 터미널에서 `sober doctor` 실행 후 이상이 있다면 `sober install`로 재연결 |
+| 특정 검색 도구가 누락되어 탐색이 느려질 때 | 기본 기능 구동에는 문제없으나, 필요 시 추가 수동 설치 혹은 `sober setup` 실행 |
+| 검증 스크립트가 내 프로젝트와 맞지 않는 빌드 스택을 실행할 때 | `~/.sober/scripts/verify.sh --path <특정하위디렉터리>` 옵션으로 타겟 디렉터리를 좁혀 실행 |
+| 에이전트 도구 오류가 해결되지 않고 무한 루프 돌 때 | 현재 동작 상태를 초기화하고 `/analyze-failures` 커맨드로 분석 후 다시 계획 수립 |
+| 에이전트의 답변이나 로그 출력이 너무 장황해질 때 | 짧은 보고 요청: "코드 수정 결과, diff, `file:line` 정보만 보여줘"라고 요청 |

@@ -1,60 +1,11 @@
 > **[한국어 버전](README.ko.md)**
 
-# Runtime Detection Layer
+# Runtime — Auto-detects your project type
 
-## Purpose
-OCP-compliant runtime detection for language-agnostic operations. Add new languages without modifying core scripts.
+This folder figures out what kind of project you're working on (like Node, JVM, Go, Rust, or Python). It runs the correct build and test commands automatically, so you don't have to configure anything yourself.
 
-## Structure
-
-```
-runtime/
-├── detect.sh         # Auto-detect project runtime
-└── adapters/         # Language-specific implementations
-```
-
-## detect.sh
-
-Automatically detects project type and outputs JSON.
-
-**Usage:**
-```bash
-# Basic usage
-./detect.sh
-# Output: {"runtime":"node","tool":"npm","adapter":"node.sh"}
-
-# Monorepo support (subdirectory)
-./detect.sh --path backend
-# Output: {"runtime":"jvm","tool":"gradle","adapter":"jvm.sh"}
-```
-
-**Detection Priority:**
-1. JVM: `build.gradle.kts` > `build.gradle` > `pom.xml`
-2. Node: `package.json` (then check lock files for pm)
-3. Rust: `Cargo.toml`
-4. Go: `go.mod`
-5. Python: `pyproject.toml` > `setup.py` > `requirements.txt`
-6. Generic: Fallback to Makefile
-
-## Integration
-
-Universal scripts use this layer:
-
-```bash
-# scripts/verify.sh
-RUNTIME=$("$RUNTIME_DIR/detect.sh" "$@")
-ADAPTER=$(echo "$RUNTIME" | jq -r '.adapter')
-source "$RUNTIME_DIR/adapters/$ADAPTER"
-adapter_verify
-```
-
-## Adding New Runtimes
-
-Update `detect.sh` only:
-
-```bash
-# Add detection pattern
-[[ -f "$dir/mix.exs" ]] && echo '{"runtime":"elixir","tool":"mix","adapter":"elixir.sh"}' && return
-```
-
-Then create the adapter in `adapters/elixir.sh`.
+## What's here
+| File / Directory | What it does |
+|---|---|
+| `detect.sh` | Looks at your files (like `package.json` or `build.gradle`) to guess the project type. |
+| `adapters/` | Teaches the verifier exactly how to build and test each different ecosystem. |

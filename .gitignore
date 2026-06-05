@@ -7,13 +7,14 @@
 .DS_Store
 Thumbs.db
 
-# Personal session files (Exclude all except examples/READMEs)
-.claude/sessions/*
-!.claude/sessions/README.md
-!.claude/sessions/README.ko.md
-!.claude/sessions/2025-01-27-auth-jwt-refresh.md
 .claude/settings.local.json
 .claude/logs/*.log
+
+# Memory is git-versioned + human-reviewed (ADR-010): HANDOFF.md and
+# .serena/memories are intentionally NOT ignored — you review and commit them.
+# Only the regenerable Serena symbol index/cache is ignored.
+.serena/*
+!.serena/memories/
 
 # Node
 node_modules/
@@ -41,3 +42,8 @@ pnpm-debug.log*
 # Test coverage & results
 coverage/
 .nyc_output/
+.omx/
+
+# Local evidence files (P7 / L6 metrics - not committed to Git)
+docs/evidence/
+docs/internal/

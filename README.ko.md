@@ -1,600 +1,253 @@
 > **[English Version](README.md)**
 
-<!-- Badges -->
-[![npm version](https://img.shields.io/npm/v/claude-pro-minmax.svg)](https://www.npmjs.com/package/claude-pro-minmax)
-[![npm downloads](https://img.shields.io/npm/dm/claude-pro-minmax.svg)](https://www.npmjs.com/package/claude-pro-minmax)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Claude Code](https://img.shields.io/badge/Claude_Code-Compatible-purple.svg)
-![Pro Plan](https://img.shields.io/badge/Pro_Plan-Optimized-green.svg)
+[![npm version](https://img.shields.io/npm/v/getsober.svg)](https://www.npmjs.com/package/getsober)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-blue.svg)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![GitHub stars](https://img.shields.io/github/stars/move-hoon/sober.svg?style=social)](https://github.com/move-hoon/sober)
 
-# Claude Pro MinMax (CPMM)
 
-> **낭비는 최소화하고, 검증된 작업은 최대화합니다.**
+# Sober
 
-CPMM은 모델 라우팅, 출력 제어, 로컬 안전장치로 리셋 전까지 더 많은 검증된 작업을 완료하도록 돕습니다.
+![Sober preview](https://github.com/user-attachments/assets/c4113ea9-06a5-43f8-bb5c-edc45ea82364)
 
-> **설치 완료했다면 여기서 시작하세요: [사용자 가이드](docs/USER-MANUAL.ko.md)**
->
-> **New in v1.4.0:** `cpmm setup`에서 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 opt-in으로 실행할 수 있고, `/llms-txt`는 explicit raw-doc fallback으로 유지됩니다.
+**Claude Code와 Codex CLI가 덜 읽고, 덜 추측하고, 더 자주 검증하도록 만드는 로컬 하네스.**
+
+Sober는 Claude Code와 Codex CLI 같은 AI 코딩 도구를 더 일관되고 효율적으로 쓰기 위한 작고 로컬인 하네스입니다. 규칙 파일 하나, 집중된 스킬 몇 개, 가벼운 안전 훅을 설치해서 에이전트가 필요한 것만 읽고, 실제 검색 도구로 위치를 찾고, 작은 변경을 만들고, 테스트로 검증하고, 실패한 추측을 반복하지 않게 만듭니다.
+
+새 에이전트 런타임이 아닙니다. 서비스를 띄우지 않습니다. API 키를 요구하지 않습니다. 설치 후 평소처럼 Claude Code나 Codex CLI에 작업을 요청하면, 두 런타임이 같은 작업 계약을 읽고 움직입니다.
+
+### Before & After
+
+- **Before Sober**: 에이전트가 파일을 통째로 읽고, 코드 위치를 추측하고, 긴 설명으로 쿼터를 씁니다.
+- **After Sober**: 에이전트가 도구로 정확한 위치를 찾고, 작은 변경만 만들고, 테스트로 검증한 뒤 짧게 보고합니다.
+
+Sober는 전체 파일 읽기, 넓은 검색, 전체 파일 재출력 대신 `grep -n`, `rg`, unified diff를 에이전트에게 강제하여 작업별 바이트 유입을 크게 줄입니다. 설계 원칙과 세부 의사결정은 [`docs/adr/`](docs/adr/)를 참고하세요.
+
+> 💡 **사용법**: Sober를 설치한 후 평소처럼 `claude` 또는 `codex` 명령어로 코딩을 요청하세요. Sober는 별도 런타임을 켜는 도구가 아니라, 각 CLI가 읽는 규칙·스킬·훅을 연결하는 로컬 하네스입니다.
 
 ---
 
-> [!TIP]
-> **🚀 3초 요약: 왜 이걸 써야 하나요?**
-> 1.  **배치 실행:** `/do`로 구현-검증을 한 흐름에서 처리하고, 필요할 때만 `/do-sonnet`/`/do-opus`로 승격합니다.
-> 2.  **출력 비용 제어:** 응답 예산, CLI 필터링, 그리고 optional RTK로 Bash 출력이 Claude 입력 컨텍스트를 불필요하게 키우지 않도록 합니다.
-> 3.  **로컬 안전장치:** 로컬 Hook + 원자적 롤백으로 실패 시 빠르게 복구합니다.
+## 빠른 시작
+
+```bash
+npm install -g getsober@latest
+sober install
+sober doctor
+```
+
+설치 후 얻는 것:
+
+- `~/.sober` 한 곳에 있는 원본
+- Claude Code와 Codex CLI가 공유하는 규칙
+- 각 런타임으로 링크되는 Sober 스킬
+- Claude Code와 Codex hooks/rules로 제공되는 안전, 핸드오프, 포맷, 압축 알림, 실패 로그
+
+Sober는 OS 레벨에서 프로세스를 가로채는 도구가 아니라, Claude Code와 Codex CLI의 설정 지점에 규칙·스킬·훅을 연결하는 방식으로 동작합니다.
+
+자주 쓰는 명령:
+
+```bash
+sober install          # Sober 정책 파일을 전역(Global)에 적용 / 갱신
+sober setup            # 의존성 + 선택적 Context7 / 검색·편집 툴킷 설치
+sober doctor           # 설치, 의존성, 훅, 선택 도구 점검
+sober template [dir]   # 특정 프로젝트(Local)에 전용 룰과 HANDOFF.md 메모리 환경 구축
+sober uninstall        # Sober 심볼릭과 ~/.sober 제거
+```
+
+첫 요청 예시 (에이전트의 올바른 습관을 유도하기):
+
+> "이 버그를 고쳐줘. 관련 위치를 먼저 찾고, 최소 변경으로 수정한 뒤 테스트까지 확인해줘."
+
+먼저 모든 줄을 확인하고 싶다면 소스에서 설치하세요:
+
+```bash
+git clone https://github.com/move-hoon/sober.git
+cd sober
+bash install.sh
+```
 
 ---
 
-## 🛠 설치 (Installation)
+## Sober가 해결하는 낭비
 
-### 1. 설치 (권장)
-```bash
-npm install -g claude-pro-minmax@latest
-cpmm setup
-cpmm doctor
+대부분의 쿼터 낭비는 지루하고 예측 가능합니다.
+
+| 흔한 상황 | Sober가 에이전트에게 가르치는 방식 |
+|---|---|
+| 한 줄 찾으려고 파일 전체 읽기 | 먼저 정확한 `file:line`을 찾기 |
+| 코드 위치를 추측하기 | `ripgrep`, `ast-grep`, Probe, Serena로 검색하기 |
+| 기계적 편집을 손으로 재작성 | 반복 가능한 커맨드라인 변환 쓰기 |
+| 오래된 탐색 결과로 코드 변경 | 대상을 다시 확인하고 컴파일/테스트 돌리기 |
+| 같은 실패 추측 재시도 | 몇 번 실패하면 멈추고 다시 계획하기 |
+| 긴 설명과 전체 파일 출력 | diff, 경로, 중요한 결정만 출력하기 |
+| 좋아 보인다는 이유로 도구 추가 | 전후 측정; 본전 안 나오면 제거하기 |
+
+원칙은 간단합니다: **모델의 사고력은 판단에 쓰고, grep에는 쓰지 않는다.**
+
+---
+
+## Sober 루프
+
+```text
+범위가 정해진 작업 요청
+  → 정확한 줄 찾기
+  → 가장 작고 안전한 변경
+  → 빌드/테스트로 검증
+  → 짧은 핸드오프 작성
+  → 무언가 추가하기 전 측정
 ```
 
-### 2. 업데이트
-```bash
-npm install -g claude-pro-minmax@latest
-cpmm setup
+이 루프는 두 런타임이 읽는 하나의 규칙 파일 [`AGENTS.md`](AGENTS.md)에 들어 있습니다. Claude Code는 `CLAUDE.md`를 통해 읽고, Codex는 `AGENTS.md`를 직접 읽습니다.
+
+내부 정책 코드를 외울 필요는 없습니다. 쉬운 말로 Sober는 에이전트에게 이렇게 요구합니다:
+
+1. 필요한 것만 읽기
+2. 실제 도구로 검색하기 **(`search-ladder` 스킬)**
+3. 기계적 편집은 도구로 처리하기 **(`edit-deterministic` 스킬)**
+4. 상태를 바꾸기 전에 검증하기 **(`verify-gate` 훅)**
+5. 반복 실패 후 멈추고 다시 계획하기
+6. 메모리는 사람이 검토한 파일로만 남기기 **(`HANDOFF.md`)**
+7. git 뒤에서 위험을 격리하기
+8. 하네스 추가는 측정으로 정당화하기 **(`observe` 스킬)**
+9. 출력을 짧게 유지하기 **(`caveman` 스킬)**
+
+각 결정의 자세한 이유는 [`docs/adr/`](docs/adr/)에 기록되어 있습니다.
+
+---
+
+## 설치되는 것
+
+Sober는 `~/.sober`를 단일 원본으로 두고, Claude Code와 Codex CLI가 같은 규칙과 스킬을 읽도록 연결합니다. 각 CLI의 고유한 설정 파일 규격에 맞춰 규칙, 스킬, 훅을 안전하게 연결합니다.
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                         Sober                                │
+│                    shared home: ~/.sober                     │
+│                                                              │
+│   ┌──────────────┬──────────────┬────────────────────────┐   │
+│   │   AGENTS.md  │   skills/    │        scripts/        │   │
+│   │ shared rules │ tool habits  │ safety + handoff hooks │   │
+│   └──────────────┴──────────────┴────────────────────────┘   │
+│             ↓              ↓                  ↓              │
+│        Claude Code      Codex CLI        project template    │
+│        ~/.claude        ~/.codex         AGENTS/HANDOFF      │
+│             ↓              ↓                  ↓              │
+│      merged settings   hooks + rules     local overrides     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 3. 트러블슈팅 (빠른 복구)
-```bash
-# 누락된 의존성 재설치
-cpmm setup
+### 파일 트리 상세
 
-# 상태 확인만
-cpmm doctor
+```text
+~/.sober/AGENTS.md                 # 공유 규칙 원본
+~/.sober/skills/<skill>/SKILL.md   # 각 스킬의 단일 원본
+
+# Claude Code 유저 환경
+~/.claude/CLAUDE.md  -> ~/.sober/AGENTS.md
+~/.claude/AGENTS.md  -> ~/.sober/AGENTS.md
+~/.claude/skills/*   -> ~/.sober/skills/*
+~/.claude/settings.json            # Sober 훅이 기존 설정에 안전하게 병합됨
+
+# Codex CLI 유저 환경
+~/.codex/AGENTS.md   -> ~/.sober/AGENTS.md
+~/.agents/skills/*   -> ~/.sober/skills/*
+~/.codex/hooks.json                 # Sober 훅이 추가형으로 병합됨
+~/.codex/rules/sober-critical-actions.rules -> ~/.sober/codex-rules/sober-critical-actions.rules
 ```
 
-### 4. 선택: 최신 라이브러리 문서 설정
+프로젝트 안의 `AGENTS.md`, `.claude/`, `.codex/` 파일은 여전히 전역 설정을 덮어쓸 수 있습니다.
 
-이제 interactive `cpmm setup`에서 권장 Context7 경로 전체를 opt-in으로 실행할 수 있습니다.
+---
 
-공식 수동 설정 경로:
+## 스킬
+
+| 스킬 | 역할 |
+|---|---|
+| `karpathy` | 범위 유지: 요구사항 날조 금지, 과잉설계 금지, 무관한 수정 금지, 주변 스타일 맞추기 |
+| `caveman` | 답변 압축: 결과, diff, `file:line`, 의례 생략 |
+| `search-ladder` | 가장 싸고 신뢰할 수 있는 순서로 코드 찾기 |
+| `edit-deterministic` | 기계적 편집을 손수 재작성 대신 도구로 처리 |
+| `observe` | 도구 추가 전 컨텍스트, 비용, 재시도, 실패 측정 |
+| `structure-graph` | 대형 레포 흐름 추적에서 그래프를 힌트로만 사용 |
+| `sober-review` | 휴대 가능한 코드 리뷰 체크리스트; 이슈만 보고하고 편집하지 않음 |
+
+---
+
+## 선택 도구
+
+Sober는 아래 도구 없이도 동작합니다. 설치하면 루프가 더 저렴해집니다.
+
+| 도구 | 도움이 되는 이유 |
+|---|---|
+| `ripgrep` | 빠른 정확 텍스트 검색 |
+| `ast-grep` | 구조적 코드 검색과 기계적 재작성 |
+| Probe | 인덱스 없는 구조적 레포 검색 |
+| Serena | LSP 기반 심볼 탐색과 편집 |
+| Context7 / `ctx7` | 오래된 API 기억 대신 최신 라이브러리 문서 |
+| `mgrep` | 개념 질의용 시맨틱 검색, 최후 수단 |
+
+실행:
+
+```bash
+sober doctor
+sober setup
+```
+
+Context7를 직접 설치하려면:
+
 ```bash
 npm install -g ctx7
 ctx7 setup --cli --claude
 ```
 
-- CPMM은 Context7를 기본 MCP 경로로 취급하지 않습니다.
-- 공식 설정 후에는 Context7의 공식 문서 통합이 최신 라이브러리 문서 조회를 처리합니다.
-- `/llms-txt`는 raw `/llms.txt` 내용이나 URL 기반 raw-doc 조회가 필요할 때만 사용하세요.
+`doctor`는 현재 상태를 보여줍니다. `setup`은 빠진 필수 의존성을 설치하고 선택 통합을 제안할 수 있습니다.
 
-> **v1.4.0 참고:** `cpmm setup`은 지원 환경에서 RTK 설치를 계속 시도합니다. RTK 활성화는 여전히 opt-in이며, Context7 opt-in은 `ctx7` 전역 설치와 공식 Claude Code 설정을 함께 진행합니다.
+---
 
-의존성 정책:
-- `required`: `jq`, `mgrep`, `tmux`
-- `optional` (interactive opt-in): `ctx7` + 공식 Context7 Claude 통합
-- `optional` (자동 설치 시도): `rtk`
-- `optional` (확인만): `claude` (사전 설치 가정)
-- 도구별 자동 설치 경로:
-  - `mgrep`: `npm`
-  - `ctx7`: `npm` + `ctx7 setup --cli --claude` (`cpmm setup`에서 interactive opt-in)
-  - `rtk`: `brew` 또는 upstream `curl` installer
-  - `jq`, `tmux`: `brew` (macOS) 또는 Linux 패키지 매니저 `apt-get`, `dnf`, `pacman`, `apk`
-- macOS에서 Homebrew가 없으면 설치 명령을 안내합니다
+## 코드 리뷰와 헬퍼 에이전트
 
-### 5. 커스텀 & 업데이트 정책
+Sober는 고정 리뷰어 파이프라인이 아니라 **리뷰 체크리스트**를 제공합니다.
 
-- `cpmm setup`은 누락된 의존성을 설치한 뒤, CPMM 설정(설정 파일 복사, 언어 선택, Perplexity 설정, optional `ctx7` 설치 + 공식 Context7 설정, managed config 정리)까지 진행합니다.
-- `cpmm doctor`는 수정 없이 의존성 상태, Context7 상태, RTK hook 상태를 확인합니다.
-- 재실행 시 CPMM 관리 파일은 최신 버전으로 교체되고, 사용자 데이터는 보존됩니다.
+아래 상황에서만 별도 헬퍼가 본전을 합니다:
 
-```text
-~/.claude/*            ← Global Baseline (CPMM 관리)
-  ├── agents/            🔄 업데이트 시 교체됨
-  ├── commands/          🔄 업데이트 시 교체됨
-  ├── contexts/          🔄 업데이트 시 교체됨
-  ├── scripts/           🔄 업데이트 시 교체됨
-  ├── skills/cli-patterns/ 🔄 업데이트 시 교체됨
-  ├── rules/*.md         🔄 업데이트 시 교체됨
-  ├── settings.json      🔄 업데이트 시 교체됨
-  ├── settings.local.json  ✋ 사용자 소유 — 보존됨
-  ├── skills/learned/      ✋ 사용자 소유 — 보존됨
-  ├── sessions/            ✋ 사용자 소유 — 보존됨
-  ├── plans/               ✋ 사용자 소유 — 보존됨
-  ├── projects/            ✋ 사용자 소유 — 보존됨
-  └── rules/language.md    ✋ 사용자 소유 — 보존됨
+- 사소하지 않은 변경을 fresh-eyes로 리뷰할 때
+- 크고 낯선 레포를 탐색할 때
+- 정말 독립적인 작업 여러 개를 병렬로 할 때
 
-<project>/.claude/*    ← Project-Specific (사용자/팀 커스텀)
-  ├── CLAUDE.md          프로젝트별 지침
-  ├── commands/          프로젝트 전용 슬래시 명령어
-  ├── skills/            프로젝트 전용 스킬
-  ├── rules/             프로젝트 전용 규칙
-  └── settings.json      프로젝트 전용 권한/훅/MCP 비활성화
-```
+일상 작업에 고정 다중 에이전트 체인을 엮지 마세요. 아끼는 것보다 더 많은 쿼터를 쓸 때가 많습니다. 체크리스트는 `skills/sober-review`에 있고, 실제 헬퍼는 Claude Code의 네이티브 subagent, Codex 헬퍼, 또는 이미 신뢰하는 리뷰어를 쓰면 됩니다.
 
-> **핵심 규칙 2가지:**
-> 1. 글로벌 커스텀은 일반적으로 `settings.local.json`에 둡니다. `settings.json`은 CPMM 관리 대상이라 업데이트 시 덮어쓰기되므로, RTK 같은 third-party hook을 여기에 넣었다면 업데이트 후 다시 확인해야 합니다.
-> 2. 커스텀 명령어/규칙은 프로젝트 `.claude/`에 — 글로벌 `commands/`는 CPMM이 관리합니다.
+---
 
-관리 설정 경계:
-- `~/.claude.json`은 CPMM 관리 대상이며 업데이트 시 정리될 수 있습니다.
-- regular file `~/.mcp.json`은 사용자 소유라 CPMM이 자동 수정하지 않습니다.
-- symlink `~/.mcp.json`은 CPMM 관리 호환 경로로 취급합니다.
+## 안전과 프라이버시
 
-프로젝트 초기화 팁:
-- `claude` 실행 전에 `project-templates/`를 참고해 프로젝트를 초기화하세요. (설치기는 `project-templates`를 `~/.claude`로 복사하지 않습니다.)
+- **덮어쓰기 없는 설치 (Additive)**: Sober는 기존 설정을 절대 덮어쓰지 않습니다. `settings.json`과 `hooks.json`에 자사의 안전 훅을 안전하게 병합만 하므로, 유저의 환경 변수나 권한 설정 등 기존 개발 환경은 그대로 보존됩니다.
+- **순수 로컬 작동**: Sober는 외부 서버를 타지 않는 로컬 설정과 Bash 스크립트 모음입니다.
+- **API 키 무관**: Sober는 사용자의 모델 API 키를 요구하거나 건드리지 않습니다.
+- **위험 명령 가드레일 (Safety Guardrails)**: 위험한 쉘 명령어는 Claude Code의 훅과 Codex의 Starlark 하드 룰에 의해 실행 전에 감지하거나 차단합니다.
+- **최종 통제권 보장**: 커밋 전 테스트 알림 같은 검증 알림은 조언성 경고일 뿐이며, 실제 `git commit`이나 `push` 명령을 강제로 차단하지 않습니다. 최종 통제권은 항상 유저에게 있습니다.
+- **보이지 않는 메모리 금지**: 세션 메모리는 숨겨진 백그라운드 기능이 아니라 사람이 언제든 눈으로 볼 수 있는 `HANDOFF.md` 파일에 기록됩니다.
+- **로컬 실패 로그 및 마스킹**: 도구 실패 로그는 로컬에만 저장되며, 저장 전 API 키나 JWT 등 흔한 시크릿 패턴을 자동으로 마스킹(Redaction)합니다.
 
-### 6. Bash 명령 출력 필터링 (RTK)
+---
 
-RTK는 CPMM이 지원하는 **선택적 Bash 명령 출력 필터링 계층**입니다. `cpmm setup`은 RTK 바이너리 설치를 시도하지만, RTK hook은 기본 활성화하지 않습니다.
+## 워크플로우 배우기
 
-RTK를 이번 릴리스에 선택 통합으로 넣은 이유는, Bash-heavy 워크플로우에서 긴 명령 출력이 Claude 입력 컨텍스트로 다시 들어가기 전에 이를 줄여 주기 때문입니다. CPMM은 권장 hook 순서를 문서화하고 `cpmm doctor`로 점검하며, 그 순서에서는 CPMM의 critical-action check가 RTK rewrite hook보다 먼저 실행되어야 합니다. 다만 hook 동작을 예측 가능하고 디버깅 가능하게 유지하기 위해 default-on이 아니라 opt-in으로 제공합니다.
+- 일상 운영 가이드: [`docs/USER-MANUAL.ko.md`](docs/USER-MANUAL.ko.md)
+- 설계 결정: [`docs/adr/`](docs/adr/)
+- 기여 안내: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-권장 opt-in 절차:
+---
+
+## 개발
 
 ```bash
-rtk init -g --hook-only
-# RTK를 켠 뒤에는 cpmm setup이 관리된 hook 순서와 timeout을 복원
-cpmm setup
-cpmm doctor
+git clone https://github.com/move-hoon/sober.git
+cd sober
+npm test
+npm pack --dry-run
 ```
-
-권장 `PreToolUse` 순서 (`~/.claude/settings.json`):
-- 먼저 CPMM safety hook: `~/.claude/scripts/hooks/critical-action-check.sh` with `timeout: 5`
-- 그 다음 RTK rewrite hook: `~/.claude/hooks/rtk-rewrite.sh` with `timeout: 10`
-
-업데이트 참고:
-- `cpmm setup`은 업데이트 시 `~/.claude/settings.json`을 다시 씁니다.
-- `cpmm setup` 전에 RTK가 이미 켜져 있었다면, CPMM이 설정 재작성 뒤에 관리된 RTK hook 순서와 `timeout: 10`을 자동 복원합니다.
-- 관리된 RTK 상태를 확인하려면 setup 뒤에 `cpmm doctor`를 실행하세요.
-
-권장 검증:
-- `/hooks`에서 CPMM hook과 RTK hook이 모두 로드되는지 확인
-- 위험 명령이 여전히 CPMM에서 먼저 차단되는지 확인
-- `cpmm doctor` 실행
-- 실제 Bash-heavy 세션 후 `rtk gain --quota --tier pro` 확인
-
-공개된 [RTK 통합 사용자 사례](https://github.com/move-hoon/claude-pro-minmax/issues/3)에서는 `rtk gain --quota --tier pro` 기준으로 Bash-heavy 워크플로우에서 `1,664`개 명령 동안 입력 토큰 `8.5M` 절감(`49.4%`)이 보고되었습니다. 절감률은 작업 부하와 세션 형태에 따라 달라질 수 있습니다.
-
-롤백:
-
-```bash
-rtk init -g --uninstall
-```
-
-### 7. 고급 (선택)
-<details>
-<summary>Perplexity, 언어, 수동 설치 보기</summary>
-
-**Perplexity/언어/Context7 설정 (필수 아님):**
-- Perplexity는 `/dplan`의 웹 리서치에 사용됩니다. 설정하지 않아도 `/dplan`은 Sequential Thinking으로 동작하고, 최신 라이브러리 문서는 공식 Context7이 설치된 경우 사용할 수 있습니다. 나머지 모든 기능은 Perplexity와 무관합니다.
-- 최초 인터랙티브 설치 시 `cpmm setup`이 출력 언어와 Perplexity API 키를 묻습니다.
-- `cpmm setup`은 `ctx7` 전역 설치 후 공식 Context7 Claude Code 설정까지 optional 단계로 제안할 수 있습니다.
-- 수동 검증:
-  ```bash
-  command -v ctx7
-  ctx7 --version
-  cpmm doctor
-  ```
-- 영어(기본): 파일이 필요 없습니다. `~/.claude/rules/language.md`가 있으면 삭제하세요.
-- 비영어: `~/.claude/rules/language.md`를 만들어 원하는 언어를 지정하세요.
-- Perplexity를 수동으로 설정하려면 `~/.claude.json`의 `mcpServers`에 아래를 추가하세요:
-
-```json
-"perplexity": {
-  "command": "npx",
-  "args": ["-y", "@perplexity-ai/mcp-server"],
-  "env": {
-    "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
-  }
-}
-```
-
-**수동 의존성 설치:**
-```bash
-# jq
-brew install jq                 # macOS
-sudo apt-get install -y jq      # Ubuntu/Debian
-sudo dnf install -y jq          # Fedora/RHEL
-sudo pacman -S --noconfirm jq   # Arch
-sudo apk add jq                 # Alpine
-
-# mgrep
-npm install -g @mixedbread/mgrep
-mgrep install-claude-code
-
-# tmux
-brew install tmux               # macOS
-sudo apt-get install -y tmux    # Ubuntu/Debian
-sudo dnf install -y tmux        # Fedora/RHEL
-sudo pacman -S --noconfirm tmux # Arch
-sudo apk add tmux               # Alpine
-```
-
-**소스에서 수동 설치:**
-```bash
-git clone https://github.com/move-hoon/claude-pro-minmax.git
-cd claude-pro-minmax
-node bin/cpmm.js setup
-# 고급/디버그 경로 (동일한 내부 설치기):
-# bash install.sh
-```
-
-</details>
-
----
-
-## 🚀 빠른 시작 (Quick Start)
-
-### ⚡ 첫 60초 (FTUE)
-
-```bash
-claude
-> /plan 이 저장소를 분석하고 작은 개선 1개에 대한 3단계 실행 계획을 제안해줘.
-> /do 1단계만 최소 변경으로 안전하게 구현해줘.
-> /review .
-> /session-save ftue-first-pass
-```
-
-### 🤖 에이전트 워크플로우
-
-CPMM은 계층적 모델 라우팅을 제공합니다: `/plan`은 @planner (Sonnet 4.6) → @builder (Haiku 4.5) 체인으로 복잡한 작업을 처리하고, `/do`는 현재 세션 모델에서 직접 실행하여 속도를 높입니다.
-
-```mermaid
-flowchart LR
-    Start([User Request]) --> Cmd{Command?}
-
-    Cmd -->|/plan| Plan[/"@planner (Sonnet 4.6)"/]
-    Cmd -->|/do| Snap["📸 git stash push"]
-
-    Snap --> Exec["Session Model (Direct)"]
-    Plan -->|"--no-build"| Done([Done])
-    Plan -->|Blueprint| Build[/"@builder (Haiku 4.5)"/]
-    Exec -- "Success" --> DropDo["🗑️ git stash drop"]
-    Build -- "Success" --> DropPlan["🗑️ git stash drop"]
-    DropDo --> Verify["✅ verify.sh"]
-    DropPlan --> Review[/"@reviewer (Haiku 4.5)"/]
-    Exec -- "Failure (2x)" --> Pop["⏪ git stash pop"]
-    Build -- "Failure (2x)" --> Pop
-    Pop --> Escalate("🚨 Escalate to Sonnet 4.6")
-
-    Verify --> Done
-    Review --> Done
-    Escalate -.-> Review
-
-    classDef planner fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
-    classDef builder fill:#bbdefb,stroke:#1565c0,stroke-width:2px;
-    classDef reviewer fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px;
-    classDef escalate fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px;
-    classDef done fill:#e0e0e0,stroke:#9e9e9e,stroke-width:2px,font-weight:bold;
-    classDef snapshot fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px;
-    classDef direct fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
-    classDef verify fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-
-    class Plan planner;
-    class Build builder;
-    class Review reviewer;
-    class Escalate escalate;
-    class Done done;
-    class Snap,DropDo,DropPlan,Pop snapshot;
-    class Exec direct;
-    class Verify verify;
-```
-
-### ⌨️ 명령어 가이드
-
-**1. 핵심 명령어 (Core Commands)**
-
-가장 자주 사용하는 필수 명령어입니다.
-
-| 명령어 | 설명 | 추천 상황 |
-| --- | --- | --- |
-| `/do [작업]` | 빠른 구현 (세션 모델) | 간단한 버그 수정, 스크립트 작성 |
-| `/plan [작업]` | **Sonnet 4.6** 설계 → **Haiku 4.5** 구현 | 기능 추가, 리팩토링, 복잡한 로직 |
-| `/review [대상]` | **Haiku 4.5** (읽기 전용) | 코드 리뷰 (파일 또는 디렉토리 지정 가능) |
-
-> **비용 최적화 Tip:** 간단한 작업에 `/do`를 사용하기 전 세션 모델을 Haiku로 설정하세요 (`/model haiku`) — @builder와 동일한 **API 입력 토큰 단가 기준 1/5**. 복잡한 작업에는 `/do-sonnet` 또는 `/plan`을 사용하세요.
-
-<details>
-<summary><strong>🚀 심화 명령어 (Advanced Commands) - Click to Expand</strong></summary>
-
-더 정교한 작업이나 세션 관리를 위한 전체 명령어 목록입니다.
-
-| 명령어 | 설명 | 추천 상황 |
-| :--- | :--- | :--- |
-| **🧠 심층 실행** | | |
-| `/dplan [작업]` | **Sonnet 4.6** + Perplexity, Sequential Thinking, 공식 Context7 설치 시 | 라이브러리 비교, 최신 기술 조사 (심층 연구) |
-| `/do-sonnet` | **Sonnet 4.6**로 직접 실행 | Haiku 4.5가 계속 실패할 때 수동 격상 |
-| `/do-opus` | **Opus 4.6**으로 직접 실행 | 매우 복잡한 문제 해결 (비용 주의) |
-| **💾 세션/컨텍스트** | | |
-| `/session-save` | 세션 요약 및 저장 | 작업 중단 시 (시크릿 자동 제거) |
-| `/session-load` | 세션 불러오기 | 이전 작업 재개 |
-| `/compact-phase` | 단계별 컨텍스트 압축 | 세션 중간에 컨텍스트 정리 필요 시 |
-| `/load-context` | 컨텍스트 템플릿 로드 | 프론트/백엔드 초기 설정 시 |
-| **🛠️ 유틸리티** | | |
-| `/learn` | 패턴 학습 및 저장 | 자주 반복되는 오류나 선호 스타일 등록 |
-| `/analyze-failures` | 오류 로그 분석 | 반복되는 에러 원인 파악 |
-| `/watch` | 프로세스 모니터링 (tmux) | 장시간 빌드/테스트 관찰 |
-| `/llms-txt` | raw 문서 가져오기 | raw `/llms.txt` 내용 또는 직접 docs URL 로드 |
-
-</details>
-
----
-
-## 핵심 전략
-
-> [!NOTE]
-> Anthropic은 Pro quota의 정확한 계산 공식을 공개하지 않습니다. 이 README는 바로 적용 가능한 사용자 운영 규칙에 집중합니다. 전략 근거 실험 아카이브는 [핵심전략 실험 아카이브](docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md)를 참고하세요.
-
-### 목표
-
-**할당량 창마다 검증된 작업 1건당 소모를 줄여, 검증된 처리량을 최대화**하는 것입니다.
-
-### 운영 원칙
-
-1. 시작은 `Haiku + /do`로 합니다. (필요 시 먼저 `/model haiku`)
-2. 단순 작업(보통 1-3 파일)은 `/do`로 빠르게 처리합니다.
-3. 설계 판단이 필요하거나 멀티파일 체크포인트가 필요하면 `/plan`을 사용합니다.
-4. Haiku로 반복 실패하면 `Sonnet + /do-sonnet`으로 승격합니다.
-5. `Opus + /do-opus`는 정말 필요한 경우에만 사용합니다.
-6. 컨텍스트가 길어지기 전에 compact로 정리합니다.
-7. 상세 측정값과 실험 맥락은 [실험 아카이브](docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md)에서 확인합니다.
-
----
-
-## 📚 문서 가이드 (Documentation Hub)
-
-이 프로젝트는 컴포넌트별 상세 문서를 제공합니다. 구체적인 동작 원리와 커스터마이징 방법은 아래 링크를 참고하세요.
-
-| 구분 | 설명 | 상세 문서 (클릭) |
-| :--- | :--- | :--- |
-| **📊 전략 근거** | 핵심전략을 뒷받침하는 실험 아카이브 | [📂 **실험 아카이브**](docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md) |
-| **🧭 사용자 가이드** | 설치 직후 실무 운영 시나리오 중심 안내서 | [📂 **사용자 가이드**](docs/USER-MANUAL.ko.md) |
-| **🤖 Agents** | Planner, Builder, Reviewer 등 에이전트의 역할과 프롬프트 정의 | [📂 **Agents 가이드**](.claude/agents/README.ko.md) |
-| **🕹️ Commands** | /plan, /do, /review 등 14개 명령어 사용법 | [📂 **Commands 가이드**](.claude/commands/README.ko.md) |
-| **🪝 Hooks** | Pre-check, Auto-format 등 11개 자동화 스크립트 로직 | [📂 **Hooks 가이드**](scripts/hooks/README.ko.md) |
-| **📏 Rules** | 보안, 코드 스타일, 위험 명령어 차단 정책 | [📂 **Rules 가이드**](.claude/rules/README.ko.md) |
-| **🧠 Skills** | CLI Patterns 같은 도구 스킬 사양 | [📂 **Skills 가이드**](.claude/skills/README.ko.md) |
-| **🔧 Contexts** | Backend/Frontend 프로젝트별 컨텍스트 템플릿 | [📂 **Contexts 가이드**](.claude/contexts/README.ko.md) |
-| **💾 Sessions** | 세션 요약 저장 및 관리 구조 | [📂 **Sessions 가이드**](.claude/sessions/README.ko.md) |
-| **🛠️ Scripts** | Verify, Build, Test 범용 스크립트 모음 | [📂 **Scripts 가이드**](scripts/README.ko.md) |
-| **⚙️ Runtime** | 프로젝트 언어/프레임워크 자동 감지 시스템 | [📂 **Runtime 가이드**](scripts/runtime/README.ko.md) |
-| **🔌 Adapters** | 언어별(Java, Node, Go 등) 빌드 어댑터 상세 | [📂 **Adapters 가이드**](scripts/runtime/adapters/README.ko.md) |
-| **🎓 Learned** | /learn 명령어로 축적된 패턴 데이터 | [📂 **Learned Skills**](.claude/skills/learned/README.ko.md) |
-
----
-
-## 📂 프로젝트 구조
-
-<details>
-<summary><strong>📁 파일 트리 보기 (Click to Expand)</strong></summary>
-
-```text
-claude-pro-minmax
-├── .claude.json                # 관리되는 글로벌 MCP 설정
-├── .claudeignore               # Claude 컨텍스트 제외 규칙
-├── .gitignore                  # Git ignore 규칙
-├── CONTRIBUTING.md             # 기여 가이드
-├── install.sh                  # 핵심 설치 스크립트 (`cpmm setup`이 내부 호출)
-├── LICENSE                     # MIT 라이선스
-├── README.md                   # 영문 문서
-├── README.ko.md                # 국문 문서
-├── package.json                # npm 패키지 매니페스트
-├── bin/                        # CPMM CLI 엔트리포인트
-│   ├── cpmm.js                 # `cpmm` 실행 진입점
-├── lib/                        # CPMM CLI 코어 구현
-│   └── cli.js                  # setup/doctor 명령 로직
-├── .claude/
-│   ├── CLAUDE.md               # 핵심 지침 (모든 세션에 로드됨)
-│   ├── settings.json           # 프로젝트 설정 (권한, 훅, 환경변수)
-│   ├── settings.local.example.json # ~/.claude/settings.local.json용 템플릿
-│   ├── agents/                 # 에이전트 정의
-│   │   ├── planner.md          # Sonnet 4.6: 아키텍처 및 설계 결정
-│   │   ├── dplanner.md         # Sonnet 4.6+MCP: 외부 도구를 활용한 심층 계획
-│   │   ├── builder.md          # Haiku 4.5: 코드 구현 및 리팩토링
-│   │   └── reviewer.md         # Haiku 4.5: 읽기 전용 코드 리뷰
-│   ├── commands/               # 슬래시 명령어
-│   │   ├── plan.md             # 아키텍처 계획 (Sonnet -> Haiku)
-│   │   ├── dplan.md            # 심층 리서치 계획 (Sequential Thinking)
-│   │   ├── do.md               # 직접 실행 (기본 Haiku)
-│   │   ├── do-sonnet.md        # Sonnet 모델로 실행
-│   │   ├── do-opus.md          # Opus 모델로 실행
-│   │   ├── review.md           # 코드 리뷰 명령어 (읽기 전용)
-│   │   ├── watch.md            # tmux를 통한 파일/프로세스 모니터링
-│   │   ├── session-save.md     # 현재 세션 상태 저장
-│   │   ├── session-load.md     # 이전 세션 상태 복원
-│   │   ├── compact-phase.md    # 단계별 컨텍스트 압축 가이드
-│   │   ├── load-context.md     # 사전 정의된 컨텍스트 템플릿 로드
-│   │   ├── learn.md            # 새로운 패턴을 메모리에 저장
-│   │   ├── analyze-failures.md # 도구 실패 로그 분석
-│   │   └── llms-txt.md         # raw /llms.txt 문서 조회
-│   ├── rules/                  # 행동 규칙
-│   │   ├── critical-actions.md # 위험 명령어 차단 (rm -rf, git push -f, etc.)
-│   │   ├── code-style.md       # 코딩 컨벤션 및 표준
-│   │   └── security.md         # 보안 모범 사례
-│   ├── skills/                 # 도구 능력
-│   │   ├── cli-patterns/       # 경량 일반 CLI 패턴
-│   │   │   ├── SKILL.md        # 스킬 정의 및 사용법
-│   │   │   └── references/     # CLI 참조 문서
-│   │   │       ├── github-cli.md
-│   │   │       └── mgrep.md
-│   │   └── learned/            # /learn 명령어로 축적된 패턴
-│   ├── contexts/               # 컨텍스트 템플릿
-│   │   ├── backend-context.md  # 백엔드 전용 지침
-│   │   └── frontend-context.md # 프론트엔드 전용 지침
-│   └── sessions/               # 저장된 세션 요약 (Markdown)
-├── .github/
-│   └── ISSUE_TEMPLATE/
-│       └── feedback.md         # 피드백용 이슈 템플릿
-├── docs/                       # 프로젝트 문서
-│   ├── CORE_STRATEGY_EXPERIMENT_ARCHIVE.md    # 실험 근거 아카이브 (EN)
-│   ├── CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md # 실험 근거 아카이브 (KO)
-│   ├── USER-MANUAL.md          # 사용자 매뉴얼 (EN)
-│   └── USER-MANUAL.ko.md       # 사용자 매뉴얼 (KO)
-├── scripts/                    # 유틸리티 및 자동화
-│   ├── verify.sh               # 범용 검증 스크립트
-│   ├── build.sh                # 범용 빌드 스크립트
-│   ├── test.sh                 # 범용 테스트 스크립트
-│   ├── lint.sh                 # 범용 린트 스크립트
-│   ├── commit.sh               # 표준화된 git commit 도우미
-│   ├── create-branch.sh        # 브랜치 생성 도우미
-│   ├── snapshot.sh             # /do 명령의 원자적 롤백 (git stash)
-│   ├── analyze-failures.sh     # /analyze-failures용 로그 분석 도구
-│   ├── scrub-secrets.js        # 세션 저장 시 시크릿 제거 로직
-│   ├── hooks/                  # 제로-코스트 Hooks (자동화 체크)
-│   │   ├── critical-action-check.sh # 위험 명령어 사전 차단
-│   │   ├── tool-failure-log.sh      # 실패 로그 파일 기록
-│   │   ├── pre-compact.sh           # 압축 전처리기
-│   │   ├── compact-suggest.sh       # 3단계 컴팩션 경고 (25/50/75)
-│   │   ├── post-edit-format.sh      # 편집 후 자동 포맷팅
-│   │   ├── readonly-check.sh        # 리뷰어 읽기 전용 강제
-│   │   ├── retry-check.sh           # 빌더 2회 재시도 제한 강제
-│   │   ├── session-start.sh         # 세션 초기화 로직
-│   │   ├── session-cleanup.sh       # 종료 시 정리 및 시크릿 제거
-│   │   ├── stop-collect-context.sh  # 중단 시 컨텍스트 수집
-│   │   └── notification.sh          # 데스크탑 알림
-│   └── runtime/                # 런타임 자동 감지
-│       ├── detect.sh           # 프로젝트 유형 감지 로직
-│       └── adapters/           # 언어별 빌드 어댑터
-│           ├── _interface.sh   # 어댑터 인터페이스 정의
-│           ├── _template.sh    # 새 어댑터용 템플릿
-│           ├── generic.sh      # 범용 폴백 어댑터
-│           ├── go.sh           # Go/Golang 어댑터
-│           ├── jvm.sh          # Java/Kotlin/JVM 어댑터
-│           ├── node.sh         # Node.js/JavaScript/TypeScript 어댑터
-│           ├── python.sh       # Python 어댑터
-│           └── rust.sh         # Rust 어댑터
-└── project-templates/          # 언어 및 프레임워크 템플릿
-    ├── backend/                # 백엔드 프로젝트 템플릿
-    │   └── .claude/
-    │       ├── CLAUDE.md
-    │       └── settings.json
-    └── frontend/               # 프론트엔드 프로젝트 템플릿
-        └── .claude/
-            ├── CLAUDE.md
-            └── settings.json
-```
-
-</details>
-
-## 지원 런타임
-
-| 런타임 | 빌드 도구 | Detection Files |
-|--------|----------|----------|
-| JVM | Gradle, Maven | `build.gradle.kts`, `pom.xml` |
-| Node | npm, pnpm, yarn, bun | `package.json` |
-| Rust | Cargo | `Cargo.toml` |
-| Go | Go Modules | `go.mod` |
-| Python | pip, poetry, uv | `pyproject.toml`, `setup.py`, `requirements.txt` |
-
-새 런타임을 추가하려면 `scripts/runtime/adapters/_template.sh`를 복사하여 구현하세요.
-
----
-
-## FAQ
-
-<details>
-<summary><strong>Q: 이 설정은 어떻게 Pro Plan quota를 최적화하나요?</strong></summary>
-
-A: Anthropic의 정확한 quota 알고리즘은 공개되지 않았습니다. 세 가지 축으로 최적화합니다:
-- **저비용 모델 우선 경로**: 기본 구현은 Haiku 중심으로 시작하고 필요 시에만 Sonnet/Opus로 승격합니다.
-- **출력 비용 인식**: 출력이 많은 턴일수록 비용 부담이 커지는 경향이 있으므로, 응답 예산과 필터링으로 payload를 줄입니다.
-- **작업 흐름 단순화**: `/do`와 `/plan`을 상황에 맞게 분리해 불필요한 고비용 턴을 줄입니다.
-
-근거 실측값은 [docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md](docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md)를 참고하세요.
-</details>
-
-<details>
-<summary><strong>Q: 5시간 내내 Claude를 사용할 수 있나요?</strong></summary>
-
-A: **보장되지 않습니다**. 세션 길이는 다음에 따라 다릅니다:
-- 작업 복잡도 (간단한 수정 vs. 대규모 리팩토링)
-- 모델 사용 (주로 Haiku vs. 주로 Opus)
-- 컨텍스트 크기 (작은 파일 vs. 전체 코드베이스)
-
-이 설정은 Pro Plan 제약 내에서 세션 길이를 최대화하도록 설계되었지만, quota 한계를 우회할 수는 없습니다.
-</details>
-
-<details>
-<summary><strong>Q: Max Plan에서도 사용할 수 있나요?</strong></summary>
-
-A: 네, 하지만 이러한 최적화가 필요하지 않을 수 있습니다. Max Plan은 훨씬 높은 사용 제한을 제공하여 Pro Plan 제약이 덜 관련됩니다. Max Plan 사용자라면:
-- Opus를 기본 모델로 quota 걱정 없이 사용 가능
-- Git Worktrees와 병렬 세션이 실용적
-- 출력 예산과 배치 실행은 여전히 좋은 습관이지만 필수는 아님
-
-이 설정은 Pro Plan의 5시간 rolling reset과 메시지 기반 quota 시스템을 위해 특별히 설계되었습니다.
-</details>
-
-<details>
-<summary><strong>Q: 기존 Claude Code 설정과 충돌하나요?</strong></summary>
-
-A: 최초 `cpmm setup` 시 기존 `~/.claude`를 `~/.claude.pre-cpmm`으로 백업합니다. 재실행 시 CPMM 관리 경로는 재생성되고, 사용자 소유 경로(언어 설정, 로컬 설정, 학습 패턴, 세션)는 보존됩니다. 정확한 경계는 설치 섹션의 2-Layer 구조를 참고하세요.
-</details>
-
-<details>
-<summary><strong>Q: 어떤 OS를 지원하나요?</strong></summary>
-
-A: macOS와 Linux를 지원합니다. Windows는 WSL을 통해 사용 가능합니다.
-</details>
-
-<details>
-<summary><strong>Q: 왜 모든 작업에 Opus를 사용하지 않나요?</strong></summary>
-
-A: API 가격(컴퓨팅 비용 반영)을 보면 Opus 4.6 ($5/MTok input)은 Sonnet 4.6 ($3/MTok)나 Haiku 4.5 ($1/MTok)보다 훨씬 비쌉니다. 정확한 Pro Plan quota 영향은 공개되지 않았지만, 모든 작업에 Opus 4.6을 사용하면 quota가 훨씬 빠르게 소진될 것입니다. 명시적 모델 선택(`/do-opus`)으로 비싼 모델 사용 시 인지할 수 있도록 합니다.
-</details>
-
-<details>
-<summary><strong>Q: /do 실행 중 실패하면 어떻게 되나요?</strong></summary>
-
-A: CPMM은 `scripts/snapshot.sh`를 통한 **best-effort 원자적 롤백**을 사용합니다.
-
-- `/do` 실행 전 `snapshot.sh push`로 라벨된 stash 스냅샷을 시도합니다.
-- 실패 시 `snapshot.sh pop`이 복구를 시도하며, 아래 상태 중 하나를 반환합니다:
-
-| 상태 | 의미 |
-| --- | --- |
-| `RESTORED` | CPMM 라벨 stash를 정상 pop하여 복구 완료 |
-| `RESTORE_FAILED` | `git stash pop` 실패 (예: 충돌) |
-| `CHECKOUT_CLEAN` | CPMM stash가 없어 fallback `git checkout .` 성공 |
-| `CLEAN_FAILED` | fallback 정리도 실패 |
-
-롤백 후에도 완전히 깨끗하지 않다면:
-1. `git status` 확인
-2. `git stash list` 확인
-3. 충돌 해결/새 untracked 파일 수동 정리 후 재시도
-
-- 비용: 0 (git stash는 로컬 작업)
-- 제한: 기존(tracked) 파일만 추적. 새로 생성된 파일은 수동 제거 필요.
-</details>
-
----
-
-## 참고 링크
-
-- 핵심전략 근거 실험 아카이브: [핵심전략 실험 아카이브](docs/CORE_STRATEGY_EXPERIMENT_ARCHIVE.ko.md)
-- 방향성 비교를 위한 외부 역분석 사례: [claude-limits](https://she-llac.com/claude-limits) (Claude 플랜 usage/credits 동작을 설명하려는 비공식 분석)
-- 공식 문서:
-  - [Anthropic Pricing](https://docs.anthropic.com/en/docs/about-claude/pricing)
-  - [Usage Limit Best Practices](https://support.claude.com/en/articles/9797557-usage-limit-best-practices)
-  - [Understanding Usage and Length Limits](https://support.claude.com/en/articles/11647753-understanding-usage-and-length-limits)
-
----
-
-## Credits
-
-- **[affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code)** — Anthropic 해커톤 우승작. 이 프로젝트의 기반입니다.
-- **[@affaanmustafa](https://x.com/affaanmustafa)** — mgrep 벤치마크 데이터 ($0.49 → $0.23, ~50% 절약), [Longform Guide to Everything Claude Code](https://x.com/affaanmustafa/status/2014040193557471352) 출처.
-- [Claude Code 공식 문서](https://code.claude.com/docs/en/)
-
-## 기여
-
-오픈소스 프로젝트입니다. 기여를 환영합니다!
-
-1. 저장소 Fork
-2. 기능 브랜치 생성 (`git checkout -b feature/amazing-feature`)
-3. 변경 사항 커밋 (`git commit -m 'feat: Add amazing feature'`)
-4. 브랜치에 Push (`git push origin feature/amazing-feature`)
-5. Pull Request 생성
 
 ## 라이선스
 
-MIT License
+MIT — [LICENSE](LICENSE)를 참고하세요.

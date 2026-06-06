@@ -1,31 +1,34 @@
 # Sober — Agent Policy Spine
 
-Shared contract for **Claude Code (Pro)** and **Codex CLI (Plus)**. Both runtimes read this file. Keep it short — it loads every turn.
+Shared contract for Claude Code (Pro) and Codex CLI (Plus). Loaded every turn — keep it compact.
 
 ## Prime directive
-Cage the LLM to irreducible judgment. Offload search, transformation, and bulk output to deterministic tools. Make failure isolated and recoverable.
+Cage the LLM to irreducible judgment. Offload search, edit, and bulk output to deterministic tools. Keep failures isolated and recoverable.
 
 **Invariant:** every LLM action must be cheap to verify and cheap to roll back.
 
 ## Engineering guardrails (every change)
-1. **No unrequested assumptions** — state them, or stop and ask. Don't invent requirements.
-2. **No over-engineering** — the smallest change that satisfies the ask. No speculative abstraction.
+1. **No assumptions** — state them or ask. Don't invent requirements.
+2. **No over-engineering** — smallest change to satisfy the ask; no speculative abstraction.
 3. **No orthogonal edits** — touch only what the task needs; surface unrelated issues separately.
-4. **Match the surrounding code** — naming, idiom, structure, comment density.
+4. **Match surrounding code** — naming, idiom, structure, comment density.
 
 ## Policies P0–P8
-- **P0 Context discipline** — never read whole files; report `file:line` + ~2 lines. Pipe high-frequency search to `| head`. Compact past ~60% context fill.
-- **P1 Search offload** — never hand-grep. `ripgrep` → `Probe` (structural repo-search) → semantic (`mgrep`) only for concept queries, last resort.
-- **P2 Edit offload** — mechanical/repeated edits via `ast-grep --rewrite`; type-aware single-symbol via Serena `replace_symbol`. Minimize LLM file-rewrites.
-- **P3 Verification gate** — no state change from unverified navigation. Before a multi-file change: verify the edit site with ripgrep or Serena (one deterministic call, not LLM reasoning), then compile/test.
-- **P4 Failure budget** — turn caps (search 1, edit 1–2, debug 3). Three failed hypotheses → stop and re-plan. Never loop on the same guess.
-- **P5 Persistent memory** — record only verified findings. Write session state/next steps to HANDOFF.md (keep it compact, recent only); write persistent architectural facts to .serena/memories. Human reviews before the next session picks them up. No auto-execution, no blind auto-injection.
-- **P6 Failure isolation** — reversible (git) boundaries. Use **native subagents/worktree** for truly independent work (3+ parallel tasks, repo-scale explore, fresh review/pre-commit) — borrow, don't build a chain; don't over-parallelize light work.
-- **P7 Observation** — justify every addition by measurement; roll back any change that worsens a metric.
-- **P8 Output compression** — No verbose prose. No whole-file reprints. Output format: result + changed files + test outcome only. Use the caveman skill if loaded.
+- **P0 Context** — never read whole files; report `file:line` + ~2 lines. Pipe search to `| head`. Compact past ~60% context.
+- **P1 Search** — never hand-grep. `ripgrep` → `Probe` (structural) → semantic (`mgrep`) for concepts, last resort.
+- **P2 Edit** — repeated edits via `ast-grep --rewrite`; type-aware single-symbol via Serena `replace_symbol`. Minimize LLM rewrites.
+- **P3 Verify** — no state change from unverified navigation. Before deep-reading graph candidates or making multi-file changes: verify candidate/site with `ripgrep`, `Probe`, or Serena (one deterministic call, not LLM reasoning), then compile/test.
+- **P4 Budget** — turn caps (search 1, edit 1-2, debug 3). 3 failed hypotheses → stop and re-plan. Never loop on the same guess.
+- **P5 Memory** — write session state/next steps to HANDOFF.md (recent only); persistent architectural facts to .serena/memories. Human reviews before next session. No auto-execution or blind injection.
+- **P6 Isolation** — reversible (git) boundaries. Use subagents/worktree for independent work (3+ parallel tasks, repo-scale explore, fresh review/pre-commit). Don't over-parallelize light work.
+- **P7 Observe** — justify additions by measurement; roll back if a metric worsens.
+- **P8 Compression** — No verbose prose/file reprints. Format: result + changed files + test outcome only. Use caveman if loaded.
 
 ## Tooling posture
-Deterministic CLI first: `ripgrep` (lexical) → `Probe` (structural search) → Serena (symbol/LSP) → semantic last. Use `ast-grep` exclusively for rewrites. **These are optional — their absence must not break base operation.** Prefer CLI tools over MCP tools when both can do the job. Reasoning uses native extended thinking; research uses native WebSearch; current library docs via Context7/`ctx7` when present — don't trust stale API memory.
+
+CLI first: `ripgrep` (lexical) → `Probe` (structural) → Serena (symbol/LSP). Use structure graph (`GitNexus` CLI) only as a conditional accelerator (large/unfamiliar repos, cross-module flow, unclear entry points, or blast-radius); verify candidates with `rg`/Probe before deep reading or editing. Semantic (`mgrep`) for concept queries only, last resort. `ast-grep` exclusively for rewrites. **Tools are optional — absence must not break base operation.**
+
+Prefer CLI by default. MCP is opt-in only. For GitNexus, prefer CLI-generated graph artifacts/hints over MCP to control cost/context. Reasoning uses native extended thinking; research uses native WebSearch; library docs via `ctx7` when present — don't trust stale API memory.
 
 ---
-Read by both runtimes — Codex reads `AGENTS.md` directly; Claude reads it via `CLAUDE.md` (a symlink to this file). This spine is self-contained; the loaded skills carry any tool specifics. (Directory READMEs are human docs, not agent context.)
+Read by Codex directly, Claude via `CLAUDE.md`. Self-contained spine; skills carry tool specifics. (Directory READMEs are human docs, not agent context.)

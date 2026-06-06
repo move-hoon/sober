@@ -18,6 +18,8 @@
 
 Sober is not another AI. It is a small rules-and-tools package you install once on top of **Claude Code** or **Codex CLI** — the AI coding tools you already use.
 
+Sober does not host a service, proxy your model traffic, or require API keys. It installs local policy files, skills, and hooks that guide your existing CLI agents.
+
 After installing, you keep running `claude` or `codex` exactly as before. Sober quietly gives them better working habits:
 
 - **Search before reading** — find the exact line instead of dumping whole files
@@ -63,7 +65,7 @@ This layered approach explains *why* we apply tools in a specific sequence:
 *   **L1 Search:** ripgrep (`| head`) → Probe (structural) → mgrep (concept/semantic, last resort)
 *   **L2 Edit:** ast-grep `--rewrite` (mechanical) + Serena `replace_symbol` (type-aware)
 *   **L3 Symbol:** Serena (LSP)
-*   **L3.5 Structure:** GitNexus / code-review-graph (hints, pre-change verification)
+*   **L3.5 Structure:** GitNexus CLI (conditional structure hints, verify with rg/Probe before reading deeply, MCP disabled by default)
 *   **L4 Verification & Isolation:** 1-shot verify → compile/test → budget caps → native worktrees
 *   **L5 Memory:** `AGENTS.md` / `CLAUDE.md` (static rules) + `.serena/memories` (architecture facts) + `HANDOFF.md` (session state)
 *   **L6 Observation:** Check `/context`, `/cost`, `/status` and KPI logs
@@ -164,7 +166,7 @@ Skills are not terminal commands. They are small instruction packs that shape ho
 | `caveman` | Long responses | "Report only result, changed files, tests, and risks." |
 | `observe` | Adding tools/rules | "Measure before and after. Keep it only if the metric improves." |
 | `sober-review` | Before commit | "Run the sober-review checklist. Report issues only. Don't edit." |
-| `structure-graph` | Large unfamiliar repos | "Map with structure-graph; before ANY edit, confirm the target exists with rg/Serena (one shot). Static graph misses runtime wiring." |
+| `structure-graph` | Large/unfamiliar repos (unclear flows, dependencies, or blast radius) | "Map with GitNexus CLI for structure hints; before reading deeply or editing, verify the candidate with rg/Probe. Keep MCP disabled by default; confirm Spring DI/AOP with tests." |
 
 ### When the agent gets stuck
 
@@ -217,8 +219,8 @@ Key metrics to watch: files read per task, output tokens, peak context fill, ret
 
 ```bash
 sober install          # apply / refresh policy files globally
-sober setup            # install + offer Context7 / search-edit toolkit
-sober doctor           # check install, deps, hooks, optional tools
+sober setup            # interactively offer Context7 and the core search/edit toolkit: ripgrep, ast-grep, Probe
+sober doctor           # check install, deps, hooks, and optional tool status
 sober template [dir]   # add project-specific rules and HANDOFF.md
 sober uninstall        # remove Sober symlinks and ~/.sober (clean exit)
 ```
@@ -227,20 +229,34 @@ sober uninstall        # remove Sober symlinks and ~/.sober (clean exit)
 
 ## Optional Tools
 
-Sober works without these. They make the agent's work cheaper when installed.
+Sober works without these tools. Some of them reduce files read, output volume, or retry loops for specific tasks.
 
-| Tool | Why it helps | Boundaries (What not to do) |
-|---|---|---|
-| `ripgrep` | Fast exact text search | Don't use for semantic/concept queries |
-| `ast-grep` | Mechanical code-shape rewrites | Use for previewed rewrites; use Probe for structural repo search |
-| Probe | Index-free structural repo search | Read-only; cannot rewrite code |
-| Serena | Symbol-aware navigation and edits through LSP | Fails to map runtime DI/AOP wiring |
-| Context7 / `ctx7` | Current library docs instead of stale API memory | Not for project-specific business logic |
-| `mgrep` | Semantic search for concept queries (last resort) | Avoid for keyword/exact match (CoREB limit) |
+`sober setup` interactively offers only the core search/edit toolkit — `ripgrep`, `ast-grep`, `Probe` — plus Context7 setup. Conditional tools such as `GitNexus`, `Serena`, and `mgrep` are reported by `sober doctor` and should be added manually only when they pay for themselves.
+
+### Core optional toolkit
+
+These tools pay off in most projects. They make Sober's default loop — search, minimal edit, verify, brief report — cheaper and more reliable.
+
+| Tool | When to use | Why it helps | Boundaries (What not to do) |
+|---|---|---|---|
+| `ripgrep` | Keyword, exact token, or regex pattern search | Fast exact text search | Don't use for semantic/concept queries |
+| `ast-grep` | Mechanical or repeated code structure edits | Mechanical code-shape rewrites | Use for previewed rewrites; use Probe for structural repo search |
+| Probe | Finding call sites, definitions, or structural code patterns | Index-free structural repo search | Read-only; cannot rewrite code |
+
+### Conditional tools
+
+Add these only when the task calls for them. They are not part of the default install path; `sober doctor` reports their status and install hints.
+
+| Tool | When to use | Why it helps | Boundaries (What not to do) |
+|---|---|---|---|
+| Serena | Type-aware single-symbol edits, renames, method-body swaps, or LSP navigation | Symbol-aware navigation and type-aware edits through LSP | This is an exception to MCP default-off. Fails to map runtime DI/AOP wiring |
+| Context7 / `ctx7` | Querying library APIs or external dependency documentation | Current library docs instead of stale API memory | Not for project-specific business logic |
+| `gitnexus` | Large/unfamiliar repos to narrow down entry points, call flows, dependencies, or blast radius | CLI-based static structure graph candidate generator | Always-on MCP is disabled by default. Protect Sober spine/skills and save costs with `gitnexus analyze --skip-agents-md --skip-skills --skip-embeddings`. Verify candidates with rg/Probe before deep reading |
+| `mgrep` | High-level conceptual searches where the token name is unknown | Semantic search for concept queries, last resort | Avoid for keyword/exact match |
 
 ```bash
-sober setup       # offers to install these interactively
-sober doctor      # shows what's present and what's missing
+sober setup       # interactively offers the core toolkit and Context7 setup
+sober doctor      # shows current status and install hints for conditional tools
 ```
 
 For Context7 directly:

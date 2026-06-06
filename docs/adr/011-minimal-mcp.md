@@ -1,16 +1,21 @@
 # ADR-011 — Minimal MCP
 
-Status: Accepted for Sober v2 planning. Quantitative claims remain hypotheses until local measurement.
+Status: Accepted
 
 ## Decision
-Prefer CLI tools; keep MCP minimal — **zero MCP loaded by default**. Serena (LSP) is the only opt-in MCP. `sequential-thinking` (→ native extended thinking) and `perplexity` (→ native WebSearch) were dropped: native capability absorbs them (ADR-013), so neither ships as a default MCP.
 
-## Drivers
-- Verified result per quota.
-- Long-term maintainability across languages/frameworks.
-- Reversibility and safety.
+MCP is default-off, not forbidden. The default path is CLI-based tools.
 
-## Consequences
-- Keep implementation small and staged.
-- Prefer detection/guidance over mandatory unmeasured dependencies.
-- Record local evidence before claiming improvement.
+Exceptions are allowed only when MCP provides a substantial, practical benefit that is hard to reproduce with CLI tools, such as Serena for LSP-based type-aware refactoring.
+
+- GitNexus is used primarily as a CLI-based structure candidate generator, not an MCP tool.
+- GitNexus MCP is opt-in only.
+- Any MCP or graph-derived result that influences code changes must be verified with `rg`/Probe before deep reading or editing.
+
+## Rationale
+
+Always-on MCP servers expand the active tool surface, increase context overhead, and make agent behavior harder to audit.
+
+They also create a failure mode where the agent treats tool-provided summaries, static graph outputs, or retrieved context as ground truth without lexical/structural validation.
+
+Sober prefers CLI tools because they are explicit, cheap to inspect, easy to reproduce, and easy to disable. MCP remains available only when it provides a clear practical advantage over CLI operation.

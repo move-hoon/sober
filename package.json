@@ -1,6 +1,6 @@
 {
   "name": "getsober",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Sober: a shared rules-and-tools harness for Claude Code Pro and Codex Plus that cuts wasted AI quota.",
   "author": "donghoon <move-hoon@users.noreply.github.com>",
   "license": "MIT",

@@ -31,7 +31,7 @@ No addition is justified by intuition. Every tool, skill, or hook must pay for i
 - `scripts/hooks/tool-failure-log.sh` output — retries, failure patterns.
 
 ## Rule
-One change at a time, measured. Bundled changes hide which one regressed. Keep a short before/after note in `.claude/HANDOFF.md` (P5), not auto-injected.
+One change at a time, measured. Bundled changes hide which one regressed. Keep a short before/after note in `HANDOFF.md` (P5), not auto-injected.
 
 ## Measured escalations (don't adopt by default)
 Default memory is file-based (`HANDOFF.md` + `.serena/memories`). Only if a metric shows it's insufficient: **claude-mem** (auto session memory) — watch for auto-injection noise. Adopt via the before/after gate above, never preemptively (ADR-010/P7).

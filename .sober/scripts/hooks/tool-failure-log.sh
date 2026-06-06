@@ -5,18 +5,17 @@
 
 set -euo pipefail
 
-INPUT=$(cat)
-
 # Check jq dependency
-if ! command -v jq &> /dev/null; then
-    echo "Error: jq is required but not installed." >&2
-    exit 1
-fi
+command -v jq >/dev/null 2>&1 || exit 0
+
+INPUT=$(cat)
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
 
 # Parsing
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // "unknown"')
-ERROR_MSG=$(echo "$INPUT" | jq -r '.error // "unknown error"')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+TOOL_NAME=$(printf '%s\n' "$INPUT" | jq -r '.tool_name // "unknown"')
+ERROR_MSG=$(printf '%s\n' "$INPUT" | jq -r '.error // "unknown error"')
+SESSION_ID=$(printf '%s\n' "$INPUT" | jq -r '.session_id // "unknown"')
 
 # Log directory
 LOG_DIR="$HOME/.sober/logs"

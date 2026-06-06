@@ -1,21 +1,22 @@
 #!/bin/bash
 # handoff-write.sh - Stop Hook — bounded session continuity memory (P5).
-# Overwrites .claude/HANDOFF.md with a fresh, compact snapshot of where the
+# Overwrites HANDOFF.md with a fresh, compact snapshot of where the
 # session left off. Bounded to ~4000 bytes. Human-reviewed, not auto-injected.
 set -euo pipefail
 
-INPUT=$(cat)
-
 command -v jq >/dev/null 2>&1 || exit 0
 
-# Prevent infinite loops if the Stop hook re-triggers.
-STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
+INPUT=$(cat)
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
+
+STOP_ACTIVE=$(printf '%s\n' "$INPUT" | jq -r '.stop_hook_active // false')
 [ "$STOP_ACTIVE" = "true" ] && exit 0
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 git -C "$PROJECT_DIR" rev-parse --git-dir >/dev/null 2>&1 || exit 0
 
-OUT_DIR="$PROJECT_DIR/.claude"
+OUT_DIR="$PROJECT_DIR"
 OUT="$OUT_DIR/HANDOFF.md"
 mkdir -p "$OUT_DIR"
 

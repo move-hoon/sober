@@ -6,7 +6,7 @@ description: Conditional last resort for large repos where the search ladder can
 # Structure Graph Skill (conditional)
 
 ## When to use (and only then)
-- Large/unfamiliar repo where `ripgrep` → `ast-grep`/Probe (search-ladder) cannot trace a call/data flow.
+- Large/unfamiliar repo where `ripgrep` → Probe (search-ladder) cannot trace a call/data flow.
 - You need a map (module dependencies, call graph, blast radius) before a cross-cutting change.
 
 **Not** for routine navigation — that stays on the search ladder (P1). This is opt-in, large-repo only.
@@ -25,6 +25,6 @@ description: Conditional last resort for large repos where the search ladder can
 3. Act only on verified locations. The graph is a lead, never ground truth (P3).
 
 ## Rules
-- Graph output is a hint to narrow search — confirm every node with `rg`/`ast-grep` before editing.
+- Graph output is a hint to narrow search — confirm every node with `rg`/Probe before editing.
 - Keep it off the default path; absence of any graph tool must not block work (degrade to search ladder).
 - One change behind a git boundary; verify after (P6/P7).

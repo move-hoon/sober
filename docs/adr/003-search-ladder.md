@@ -3,7 +3,7 @@
 Status: Accepted for Sober v2 planning. Quantitative claims remain hypotheses until local measurement.
 
 ## Decision
-Use ripgrep first, ast-grep/Probe for structure, semantic search only as last resort.
+Use ripgrep first, Probe for structural repo search, semantic search only as last resort.
 
 ## Drivers
 - Verified result per quota.

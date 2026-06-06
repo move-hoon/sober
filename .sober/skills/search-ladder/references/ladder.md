@@ -11,13 +11,8 @@ rg -n --glob '!**/node_modules/**' "pattern"
 Use when: exact identifier/string/regex. Cheapest, always present.
 - **Token lever (P0):** pipe high-frequency search to `| head -50`. `-C N` (context lines) inflates output ~2–6× — use only when you actually need surrounding lines.
 
-## Rung 2: ast-grep / Probe (structural)
+## Rung 2: Probe (structural repo search)
 ```bash
-# ast-grep — pattern is code, $X are metavars, $$$ is variadic
-ast-grep -p 'class $C extends $_ { $$$ }' --lang ts
-ast-grep -p 'await $X.query($$$)' --lang ts | head -50
-ast-grep run -p '@$DEC' --lang py        # decorators
-# Probe — semantic-ish code search over a tree
 probe search "session token refresh" ./src --max-results 20
 ```
 Use when: matching shape (signatures, call patterns, nesting) where regex is brittle.
@@ -29,6 +24,5 @@ mgrep "concept you cannot name as a token" src/
 Use only when the target has no stable lexical/structural handle. Highest token/noise cost (P1). `grepai` is an equivalent semantic alternative — embeddings go stale and degrade on short keyword queries (CoREB), so semantic stays last.
 
 ## Fallback discipline
-- `ast-grep` absent → degrade to `rg` with a looser pattern.
 - `probe` absent → `rg` + manual narrowing.
 - Never escalate to semantic to avoid writing a precise lexical query.

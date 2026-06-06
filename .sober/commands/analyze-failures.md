@@ -41,7 +41,7 @@ bash ~/.sober/scripts/analyze-failures.sh "$ARGUMENTS"
 
 💡 **Recommendations**:
 - Review frequent failures and update your approach
-- Record any durable lesson in `.claude/HANDOFF.md` (human-reviewed memory, P5)
+- Record any durable lesson in `HANDOFF.md` (human-reviewed memory, P5)
 ```
 
 This command is **quantitative**: it looks at *past errors* from the logs ("what went wrong?") so you can stop repeating them (P4). Keep lessons in `HANDOFF.md`, not auto-memory.

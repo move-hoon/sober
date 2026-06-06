@@ -39,4 +39,4 @@ Plus from the session: files read / task, turn count, failure blast radius (file
 Verdict: keep / roll back
 ```
 
-Keep a short before/after note in `.claude/HANDOFF.md` (P5) — not auto-injected. See `skills/observe`.
+Keep a short before/after note in `HANDOFF.md` (P5) — not auto-injected. See `skills/observe`.

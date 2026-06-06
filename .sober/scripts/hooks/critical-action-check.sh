@@ -5,8 +5,13 @@
 
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || exit 0
+
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
+
+COMMAND=$(printf '%s\n' "$INPUT" | jq -r '.tool_input.command // empty')
 
 # If not a Bash tool or no command, skip
 [ -z "$COMMAND" ] && exit 0

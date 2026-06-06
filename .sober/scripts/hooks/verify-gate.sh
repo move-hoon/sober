@@ -5,11 +5,13 @@
 # Enforcement of dangerous commands stays in critical-action-check.sh.
 set -euo pipefail
 
-INPUT=$(cat)
-
 command -v jq >/dev/null 2>&1 || exit 0
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+INPUT=$(cat)
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
+
+CMD=$(printf '%s\n' "$INPUT" | jq -r '.tool_input.command // empty')
 [ -z "$CMD" ] && exit 0
 
 # Only gate the verification boundary: committing or pushing.

@@ -4,8 +4,13 @@
 # Tier 1: 25 (advisory) | Tier 2: 50 (warning) | Tier 3: 75 (critical)
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || exit 0
+
 INPUT=$(cat)
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "default"')
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
+
+SESSION_ID=$(printf '%s\n' "$INPUT" | jq -r '.session_id // "default"')
 # Sanitize before using in a /tmp path — defensive against path traversal / odd chars.
 SAFE_SESSION_ID=$(printf '%s' "$SESSION_ID" | tr -c 'A-Za-z0-9._-' '_')
 

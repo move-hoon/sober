@@ -51,13 +51,13 @@ fi
 
 # 3b. Handoff notice (opt-in, ~20 tokens) — P5: notify, never auto-inject body.
 if [ "${CLAUDE_HANDOFF_NOTIFY:-0}" = "1" ]; then
-  HANDOFF="${CLAUDE_PROJECT_DIR:-.}/.claude/HANDOFF.md"
+  HANDOFF="${CLAUDE_PROJECT_DIR:-.}/HANDOFF.md"
   if [ -f "$HANDOFF" ]; then
     cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "📝 HANDOFF.md from last session exists. Load deliberately if resuming: Read .claude/HANDOFF.md"
+    "additionalContext": "📝 HANDOFF.md from last session exists. Load deliberately if resuming: Read HANDOFF.md"
   }
 }
 EOF

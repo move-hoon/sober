@@ -9,7 +9,7 @@
 |---|---|
 | `karpathy` | 4가지 엔지니어링 규칙을 따릅니다: 범위 날조 금지, 과잉설계 금지, 무관한 편집 금지, 코드 스타일 맞추기. |
 | `caveman` | 답변을 짧게 유지합니다 — 텍스트 벽 대신 diff와 `file:line`을 씁니다. |
-| `search-ladder` | 손으로 추측하지 않고 실제 도구(ripgrep, ast-grep)로 검색합니다. |
+| `search-ladder` | 손으로 추측하지 않고 실제 도구(ripgrep, Probe, mgrep 최후 수단)로 검색합니다. |
 | `edit-deterministic` | 파일을 손으로 다시 쓰지 않고 도구로 기계적/대량 편집을 합니다. |
 | `observe` | 도구를 추가하기 전에 실제로 도움이 되는지 측정하고, 아니면 제거합니다. |
 | `structure-graph` | 크고 낯선 코드베이스를 탐색할 때 의존성 그래프를 활용합니다. |

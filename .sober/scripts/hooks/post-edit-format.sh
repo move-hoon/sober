@@ -5,8 +5,13 @@
 
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || exit 0
+
 INPUT=$(cat)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_response.filePath // empty')
+[ -z "${INPUT:-}" ] && exit 0
+printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
+
+FILE_PATH=$(printf '%s\n' "$INPUT" | jq -r '.tool_input.file_path // .tool_response.filePath // empty')
 
 # Skip if file path is missing or file does not exist
 [ -z "$FILE_PATH" ] && exit 0

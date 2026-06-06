@@ -14,10 +14,8 @@ Never hand-grep, never read a whole file to "look around." Each search is one of
    rg -n "createSession" --type ts | head -50
    rg -n "TODO|FIXME" -g '!*.test.*' | head -50
    ```
-2. **Structural — `ast-grep` / Probe** (when syntax matters, not text).
+2. **Structural — Probe** (when code structure matters more than exact text).
    ```bash
-   ast-grep -p 'function $F($_) { $$$ }' --lang ts
-   ast-grep -p 'catch ($E) { $$$ }' --lang ts | head -50
    probe search "auth middleware" ./src
    ```
 3. **Semantic — `mgrep`** — concept queries only, **last resort** (cost + noise).
@@ -27,8 +25,8 @@ Never hand-grep, never read a whole file to "look around." Each search is one of
 
 ## Rules
 - Pipe high-frequency searches to `| head` — bounded output (P0).
-- Prefer structural over regex when matching code shape (params, calls, decorators).
+- Prefer structural search over regex when text is too brittle.
 - Drop to semantic only when you cannot name the token — never as rung 1.
-- Optional tools may be absent; fall back down the ladder (`ast-grep` missing → `rg`).
+- Optional tools may be absent; fall back down the ladder (`probe` missing → `rg`).
 
-Need concrete recipes for a rung (regex flags, ast-grep patterns, mgrep phrasing)? Read `references/ladder.md`.
+Need concrete recipes for a rung (regex flags, Probe queries, mgrep phrasing)? Read `references/ladder.md`.

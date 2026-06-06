@@ -9,7 +9,7 @@ Skills are short playbooks the AI pulls in when relevant to the task. They help 
 |---|---|
 | `karpathy` | Follows four engineering rules: no fake scope, no over-building, no unrelated edits, match the style. |
 | `caveman` | Keeps answers short — diffs and `file:line`, not walls of text. |
-| `search-ladder` | Searches with real tools (ripgrep, ast-grep), not by guessing. |
+| `search-ladder` | Searches with real tools (ripgrep, Probe, mgrep last), not by guessing. |
 | `edit-deterministic` | Makes mechanical/bulk edits with tools, not by hand-rewriting files. |
 | `observe` | Before adding any tool, measures that it actually helps; if not, removes it. |
 | `structure-graph` | Uses a dependency graph to help navigate massive, unfamiliar codebases. |

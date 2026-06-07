@@ -30,7 +30,7 @@ locate facts → read only what matters → make the smallest safe change → ve
 
 At the center is one shared `AGENTS.md`: the workflow contract both runtimes follow.
 
-Nothing is overwritten. Everything is additive. Uninstall removes only Sober-owned files.
+Your existing config is preserved. Sober only adds or refreshes its managed blocks, symlinks, hooks, and rules. Uninstall removes only Sober-owned files.
 
 Use Sober as the default control layer, then add your own commands, subagents, MCP tools, and project-specific rules on top.
 
@@ -39,6 +39,7 @@ Use Sober as the default control layer, then add your own commands, subagents, M
 ## Quick Start
 
 ### Prerequisites
+- **OS**: macOS or Linux. Windows users should use WSL.
 - **Agents**: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Codex CLI](https://github.com/openai/codex) must be installed.
 - **Runtime**: Node.js 18+
 
@@ -91,7 +92,7 @@ Use these commands to diagnose the toolchain status or safely remove configurati
   ```bash
   sober doctor
   ```
-- **Safe Uninstall**: Completely removes Sober symlinks, hooks, and the `~/.sober` directory without touching your personal runtime configurations.
+- **Safe Uninstall**: Removes Sober-owned symlinks, managed hook entries, and the `~/.sober` directory, leaving your own runtime configurations in place.
   ```bash
   sober uninstall
   ```
@@ -205,7 +206,7 @@ No matter how advanced models become, Sober is designed around these five future
 
 ### 3. The Sober Contract (Agent Rules)
 
-At the center of Sober is one shared `AGENTS.md`. This is not just documentation for humans — it is the working contract your agent reads every turn. It constrains the agent's default behavior into a stricter, resource-saving loop:
+At the center of Sober is one shared `AGENTS.md`. It is the contract Sober installs where Claude Code and Codex CLI look for agent instructions. It constrains the agent's default behavior into a stricter, resource-saving loop:
 
 | Policy | Core Rule | Details & Constraints |
 | :--- | :--- | :--- |

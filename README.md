@@ -32,12 +32,82 @@ At the center is one shared `AGENTS.md`: the workflow contract both runtimes fol
 
 Nothing is overwritten. Everything is additive. Uninstall removes only Sober-owned files.
 
+Use Sober as the default control layer, then add your own commands, subagents, MCP tools, and project-specific rules on top.
+
+---
+
+## Quick Start
+
+### Prerequisites
+- **Agents**: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Codex CLI](https://github.com/openai/codex) must be installed.
+- **Runtime**: Node.js 18+
+
+---
+
+### 3-Step Developer Workflow
+
+Establish calm working habits for your AI agent in three simple steps.
+
+#### **Step 1: Global Installation & Setup**
+Choose the installation path that best fits your development environment:
+
+##### **Option A: Interactive Installer (Highly Recommended for First-Time Setup)**
+Deploys Sober rules/hooks and interactively checks/guides you through installing optional deterministic tools (`jq`, `ripgrep`, `ast-grep`, `Probe`, and `Context7`).
 ```bash
 npm install -g getsober@latest
 sober setup
 ```
 
-Use Sober as the default control layer, then add your own commands, subagents, MCP tools, and project-specific rules on top.
+##### **Option B: Core Configuration Only (Silent Update)**
+Only deploys Sober's core policy and skill files to `~/.sober` and links them to the AI runtimes. (Best for updates or if you already have the required tools installed).
+```bash
+npm install -g getsober@latest
+sober install
+```
+
+---
+
+#### **Step 2: Project Integration**
+Navigate to your project root and generate the local policy contract (`AGENTS.md`) and session memory (`HANDOFF.md`).
+```bash
+cd your-project
+sober template .  # Generates local agent contract & handoff templates
+claude            # or: codex (run your agent as usual)
+```
+
+> [!TIP]
+> Prompt your agent with clear, scoped requests to see Sober in action:
+> ```text
+> Fix the login timeout bug.
+> Find the right lines first, make the smallest safe change, and verify with tests.
+> ```
+
+---
+
+#### **Step 3: Diagnostics & Maintenance**
+Use these commands to diagnose the toolchain status or safely remove configurations:
+
+- **Run Diagnostics**: Checks the status of hooks, skills, dependencies, and optional tools.
+  ```bash
+  sober doctor
+  ```
+- **Safe Uninstall**: Completely removes Sober symlinks, hooks, and the `~/.sober` directory without touching your personal runtime configurations.
+  ```bash
+  sober uninstall
+  ```
+
+---
+
+### Where does it install?
+
+Sober operates within two distinct, decoupled scopes:
+
+* 🏠 **Global Scope (`~/`)** — created by `sober setup` or `sober install`
+  * `~/.sober`: Canonical source of truth for Sober policies, hooks, and skills.
+  * `~/.claude` & `~/.codex`: Configuration and rules safely merged with your existing runtime settings.
+* 📁 **Local Scope (`./`)** — created by `sober template`
+  * `[project]/AGENTS.md`: The project-specific policy spine governing the agent.
+  * `[project]/HANDOFF.md`: Local session memory ensuring seamless task handoffs between invocations.
 
 ---
 
@@ -166,57 +236,6 @@ At the center of Sober is one shared `AGENTS.md`. This is not just documentation
 
 ---
 
-## Quick Start
-
-### Prerequisites
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Codex CLI](https://github.com/openai/codex) must be installed first.
-- Node.js 18+
-
-### Install
-
-```bash
-npm install -g getsober@latest
-sober setup
-```
-
-### Verify
-
-```bash
-sober doctor
-```
-
-### Apply Sober to a project
-
-```bash
-cd your-project
-sober template .  # Generates AGENTS.md, HANDOFF.md, etc. in your project.
-claude            # or: codex
-```
-
-Prompt with scoped tasks:
-
-```text
-Fix the login timeout bug.
-Find the right lines first, make the smallest safe change, and verify with tests.
-```
-
-That's it. Your daily commands are still just `claude` or `codex`.
-
-### Where does it install?
-
-Sober uses two distinct scopes:
-
-1. **Global home scope (`~/`)** — created by `sober setup`
-   - `~/.sober`: canonical source of truth for policies, hooks, and skills.
-   - `~/.claude` and `~/.codex`: configuration and rules injected by Sober.
-
-2. **Local project scope (`./`)** — created by `sober template`
-   - `your-repo/AGENTS.md`: project-specific policy spine.
-   - `your-repo/HANDOFF.md`: session continuity memory for this project.
-
----
-
 ## Usage Guide
 
 ### Writing effective prompts
@@ -308,18 +327,6 @@ Key metrics to watch:
 - Retry rate
 
 If any metric gets worse, roll back.
-
----
-
-## Commands
-
-```bash
-sober install          # apply / refresh policy files globally
-sober setup            # install policy, then interactively offer Context7 and the core search/edit toolkit
-sober doctor           # check install, deps, hooks, and optional tool status
-sober template [dir]   # add project-specific rules and HANDOFF.md
-sober uninstall        # remove Sober symlinks and ~/.sober
-```
 
 ---
 

@@ -1,9 +1,9 @@
 ---
 name: observe
-description: Measure cost and context before justifying any harness change (L6 / P7). Read /context, /cost, /status and the tool-failure log to get before/after numbers; roll back anything that worsens a metric. Use when adding tools, evaluating a phase, or diagnosing quota burn.
+description: Measure cost and context before justifying any harness change (P7). Read /context, /cost, /status and the tool-failure log to get before/after numbers; roll back anything that worsens a metric. Use when adding tools, evaluating a phase, or diagnosing quota burn.
 ---
 
-# Observe Skill (L6 — peak KPI = verified results / quota)
+# Observe Skill (P7 — peak KPI = verified results / quota)
 
 ## Purpose
 No addition is justified by intuition. Every tool, skill, or hook must pay for itself in a measured metric; if a change worsens a number, revert it (P7).

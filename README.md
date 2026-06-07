@@ -82,33 +82,87 @@ Don't like it? Run `sober uninstall` to remove Sober-owned links, hooks, and `~/
 
 ---
 
-## How to think about Sober
+## How Sober Works
 
-Sober sits at a different layer than models, MCP tools, custom commands, or subagents.
+Sober operates on three levels: a visual workflow loop, core architectural principles, and the concrete agent contract.
 
-| Layer                   | What it does                    | How Sober relates                                                 |
-| ----------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| Claude Code / Codex CLI | Runs the AI coding agent        | Sober does not replace them; it keeps them inside a verifiable workflow |
-| MCP tools               | Extend what the agent can access| Sober shapes how and when tools should be used                    |
-| Custom commands         | Add task-specific workflows     | Sober is the default behavior layer those workflows start from   |
-| Subagents               | Divide or delegate work         | Sober shapes how each agent approaches the work                   |
-| Prompt packs            | Instructions you paste into chat| Sober is structure you install into local config and project files|
+### 1. The Sober Loop (Execution Flow)
 
-If you need an analogy: Sober is a **control harness and workflow contract** for AI coding agents. It does not create a new agent; it keeps your existing Claude Code and Codex CLI inside a calmer loop: find facts, patch small, verify, and hand off.
+Sober does not create a new agent; it keeps your existing Claude Code and Codex CLI inside a calm, turn-by-turn execution workflow:
 
+```mermaid
+flowchart TD
+    classDef step fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e1b4b;
+    classDef global fill:#f8fafc,stroke:#94a3b8,stroke-width:2px,color:#0f172a;
+    classDef exit fill:#fff1f2,stroke:#f43f5e,stroke-width:2px,color:#4c0519;
+    classDef startEnd fill:#f0fdf4,stroke:#10b981,stroke-width:2px,color:#064e3b;
 
-### The Sober loop
-
-```text
-Ask one scoped task
-  → locate exact lines
-  → change with the smallest safe edit
-  → verify with build/tests
-  → write a short handoff
-  → measure before adding anything
+    P6([1. Workspace Isolation: P6 Isolation]):::startEnd --> P0[Enter Sober Harness: P0 Context Limits]:::global
+    P0 --> P1[2. Search & Locate: P1 Search]:::step
+    P1 --> P2[3. Minimal Patch: P2 Edit]:::step
+    P2 --> P3[4. Proof Before Done: P3 Verify]:::step
+    
+    P3 --> P4{3+ failures repeated? <br> P4 Budget}:::global
+    P4 -- Yes --> Stop([Stop & Re-plan]):::exit
+    P4 -- No --> P5[5. Session Handoff: P5 Memory]:::step
+    
+    P5 --> P8[6. Brief Report Output: P8 Compression]:::step
+    P8 --> P7([7. KPI Measurement: P7 Observe]):::global
 ```
 
-The loop lives in [`AGENTS.md`](AGENTS.md), the one rules file both runtimes read. Claude Code reads it through `CLAUDE.md`; Codex reads `AGENTS.md` directly.
+The loop lives in [`AGENTS.md`](AGENTS.md), the single rules file both runtimes read. Each policy (P0–P8) is mapped to its operational role within the cycle:
+
+* **Sequential Execution Steps** (`P1` → `P2` → `P3` → `P5`)
+  * Governs the core linear task lifecycle: progresses from **Search & Locate (P1)** → **Minimal Patch (P2)** → **Proof Before Done (P3)** → **Session Handoff (P5)**.
+* **Continuous Guardrails** (`P0`, `P4`, `P8`)
+  * Active throughout the loop: nudges the agent to compact context as it grows (**P0**), requests stopping to re-plan on repeated failures (**P4**), and guides compressed output formatting (**P8**).
+* **Workspace & KPI Feedback** (`P6`, `P7`)
+  * Establishes the git-isolated workspace (**P6**) before starting, and measures baseline metrics (**P7**) when adding rules or tools.
+
+
+On top of Sober, you can freely add custom commands, subagents, MCP tools, and project-specific rules.
+
+
+### 2. The 5 Invariants (Design Pillars)
+
+No matter how advanced models become, Sober is designed around these five future-proof, architectural pillars:
+
+1. **Policy Contract:** The P0-P8 rules that cage the LLM to irreducible judgment.
+2. **Deterministic Offload:** Code/tools handle search, transformation, and bulk output.
+3. **Verification Gate & Isolation:** Warns on unverified state changes and keeps work within reversible git boundaries (like worktrees).
+4. **Persistent Human-Reviewed Memory:** Local file-based memory (`HANDOFF.md`) instead of opaque databases.
+5. **Observation:** Every addition must be justified by measurement.
+
+### 3. The Sober Contract (Agent Rules)
+
+At the center of Sober is one shared `AGENTS.md`. This is not just documentation for humans — it is the working contract your agent reads every turn. It constrains the agent's default behavior into a stricter, resource-saving loop:
+
+| Policy | Core Rule | Details & Constraints |
+| :--- | :--- | :--- |
+| **`P0 Context`** | **Context discipline** | Never read whole files; find the exact `file:line` and adjacent ~2 lines first. Pipe all search results to `| head` and suggest context compaction as the context grows. |
+| **`P1 Search`** | **Search before reading** | Never hand-grep; use `ripgrep` for exact/regex keyword matches, structural `Probe` for definitions and call-sites, and semantic `mgrep` for abstract concepts as a last resort. |
+| **`P2 Edit`** | **Small patches only** | Touch only what the task requires and minimize LLM rewrites by offloading edits to `ast-grep --rewrite` for repeated mechanical patches and Serena `replace_symbol` for type-aware single-symbol updates. |
+| **`P3 Verify`** | **Proof before "done"** | Nudges the agent to avoid editing based on unverified guesses. Verify candidates/sites first using `ripgrep`, `Probe`, or Serena (in a single call), and request the closest possible build/test/verification steps before declaring completion. |
+| **`P4 Budget`** | **No repeated failure loops** | Strictly respect turn budgets (1 search, 1-2 edits, 3 debugs). Immediately stop to re-plan after 3 failed hypotheses rather than looping on the same guess. |
+| **`P5 Memory`** | **Visible handoff** | Write session state to `HANDOFF.md` and persistent architectural facts to `.serena/memories` for human review (no auto-execution or blind injection). |
+| **`P6 Isolation`** | **Reversible isolation** | Keep changes within clean git boundaries. Run independent work (like parallel tasks, repo-scale exploration, or fresh review/pre-commit checks) using native git worktrees or subagents. |
+| **`P7 Observe`** | **Measure additions** | Justify any new tools, rules, or hooks by measuring cost, context fill, and retries. Roll back the change immediately if a metric worsens. |
+| **`P8 Compression`** | **Brief reports** | Avoid verbose prose or redundant file reprints. Format replies to include the final result, changed files, and test outcomes only, using the `caveman` compression skill when loaded. |
+
+
+
+#### How the contract maps to tools
+
+| Contract Policy | Supporting Component (under `~/.sober/`) |
+| :--- | :--- |
+| **`P0` / `P1` Limits & Search** | `search-ladder` skill, `ripgrep`, Probe |
+| **`P2` Minimal Patching** | `edit-deterministic` skill, `ast-grep`, Serena (LSP) |
+| **`P3` Proof Before Done** | `verify-gate` hook, `verify.sh` script |
+| **`P4` Exit on Repeated Failures** | `tool-failure-log` hook, `analyze-failures.sh` command |
+| **`P5` Handoff & Continuity** | `handoff-write` hook, `HANDOFF.md` file |
+| **`P8` Compressed Brief Reports** | `caveman` skill |
+| **`P7` KPI & Additions Measurement** | `observe` skill, `/measure` command |
+
 
 ---
 
@@ -349,28 +403,8 @@ codex mcp add context7 -- npx -y @upstash/context7-mcp --api-key YOUR_API_KEY
 
 
 
-## Core Architecture: The 5 Invariants
+## Internal Structure & Reference
 
-What survives even as models improve:
-
-1. **Policy Contract:** The P0-P8 rules that cage the LLM to irreducible judgment.
-2. **Deterministic Offload:** Code/tools handle search, transformation, and bulk output.
-3. **Verification Gate & Isolation:** No state change without deterministic verification; parallel work stays in worktrees.
-4. **Persistent Human-Reviewed Memory:** Local file-based memory (`HANDOFF.md`) instead of opaque databases.
-5. **Observation:** Every addition must be justified by measurement.
-
-### L0-L6 Layered Architecture
-
-This layered approach explains *why* tools are applied in a specific sequence:
-
-- **L0 Output:** Caveman compressed output + Context7 for current external docs.
-- **L1 Search:** `ripgrep` (`| head`) → Probe for structural search → `mgrep` for concept/semantic search as a last resort.
-- **L2 Edit:** `ast-grep --rewrite` for mechanical edits + Serena `replace_symbol` for type-aware edits.
-- **L3 Symbol:** Serena for LSP-backed symbol navigation.
-- **L3.5 Structure:** GitNexus CLI for conditional structure hints; verify candidates with `rg` or Probe before deep reading. MCP stays disabled by default.
-- **L4 Verification & Isolation:** One-shot verify → compile/test → budget caps → native worktrees.
-- **L5 Memory:** `AGENTS.md` / `CLAUDE.md` for static rules, `.serena/memories` for architecture facts, and `HANDOFF.md` for session state.
-- **L6 Observation:** Check `/context`, `/cost`, `/status`, and KPI logs.
 
 ### Project template output
 

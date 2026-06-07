@@ -1,6 +1,6 @@
 ---
 name: measure
-description: Capture L6 cost/context KPIs (P7) before and after a harness change, and roll back anything that regresses. Use when adding a tool/skill/hook or evaluating a build phase.
+description: Capture P7 cost/context KPIs before and after a harness change, and roll back anything that regresses. Use when adding a tool/skill/hook or evaluating a build phase.
 argument-hint: [baseline|after|<label>]
 ---
 

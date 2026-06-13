@@ -33,7 +33,7 @@ fi
 
 # 3. Failure log notification (opt-in, ~30 tokens)
 if [ "${CLAUDE_FAILURE_NOTIFY:-0}" = "1" ]; then
-  LOG_FILE="$HOME/.sober/logs/tool-failures.log"
+  LOG_FILE="${SOBER_TOOL_FAILURE_LOG:-$HOME/.sober/logs/tool-failures.log}"
   if [ -f "$LOG_FILE" ]; then
     FAILURE_COUNT=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
     if [ "$FAILURE_COUNT" -gt 10 ]; then

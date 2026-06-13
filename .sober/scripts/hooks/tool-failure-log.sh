@@ -17,11 +17,8 @@ TOOL_NAME=$(printf '%s\n' "$INPUT" | jq -r '.tool_name // "unknown"')
 ERROR_MSG=$(printf '%s\n' "$INPUT" | jq -r '.error // "unknown error"')
 SESSION_ID=$(printf '%s\n' "$INPUT" | jq -r '.session_id // "unknown"')
 
-# Log directory
-LOG_DIR="$HOME/.sober/logs"
-mkdir -p "$LOG_DIR"
-
-LOG_FILE="$LOG_DIR/tool-failures.log"
+LOG_FILE="${SOBER_TOOL_FAILURE_LOG:-$HOME/.sober/logs/tool-failures.log}"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
 # Record log. Best-effort redact common credential shapes, collapse newlines,
@@ -33,7 +30,9 @@ ERROR_MSG=$(printf '%s' "$ERROR_MSG" | tr '\n' ' ' | sed -E \
   -e 's/(([Aa]pi[_-]?[Kk]ey|[Tt]oken|[Ss]ecret|[Pp]assword|[Aa]uthorization)["'"'"']?[[:space:]]*[:=][[:space:]]*)[^[:space:]]+/\1[REDACTED]/g' \
   -e 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED_JWT]/g')
 ERROR_MSG="${ERROR_MSG:0:200}"
-echo "[$TIMESTAMP] Tool: $TOOL_NAME | Error: $ERROR_MSG | Session: $SESSION_ID" >> "$LOG_FILE"
+{
+  echo "[$TIMESTAMP] Tool: $TOOL_NAME | Error: $ERROR_MSG | Session: $SESSION_ID" >> "$LOG_FILE"
+} 2>/dev/null || exit 0
 
 # Count how many of the most recent failures were this same tool — a bounded
 # recency window (last 20 entries), fixed-string match on the delimited Tool

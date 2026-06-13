@@ -73,11 +73,22 @@ Sober를 적용하고자 하는 프로젝트 루트 디렉터리로 이동하여
 ```bash
 cd your-project
 sober template .  # 로컬 설정 파일 및 템플릿 생성
-claude            # 또는: codex (평소처럼 에이전트 구동)
+sober claude      # 또는: sober codex
 ```
 
+Sober로 에이전트를 실행합니다:
+```bash
+sober codex
+sober claude
+sober codex --yolo
+sober claude --yolo
+```
+
+> [!NOTE]
+> `--yolo`는 승인/권한을 우회합니다. 격리된 환경에서만 사용하세요.
+
 > [!TIP]
-> 이제 평소처럼 `claude` 또는 `codex`를 실행한 후, 아래와 같이 명확한 완료 기준을 명시한 작업을 요청해 보세요:
+> 이제 `sober claude` 또는 `sober codex`를 실행한 후, 아래와 같이 명확한 완료 기준을 명시한 작업을 요청해 보세요:
 > ```text
 > 로그인 타임아웃 버그를 고쳐줘.
 > 관련 위치를 먼저 찾고, 가장 작고 안전한 변경을 적용한 뒤 테스트로 검증해줘.

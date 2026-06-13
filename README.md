@@ -73,8 +73,19 @@ Navigate to your project root and generate the local policy contract (`AGENTS.md
 ```bash
 cd your-project
 sober template .  # Generates local agent contract & handoff templates
-claude            # or: codex (run your agent as usual)
+sober claude      # or: sober codex
 ```
+
+Launch an agent through Sober:
+```bash
+sober codex
+sober claude
+sober codex --yolo
+sober claude --yolo
+```
+
+> [!NOTE]
+> `--yolo` bypasses approvals/permissions. Use it only in isolated environments.
 
 > [!TIP]
 > Prompt your agent with clear, scoped requests to see Sober in action:

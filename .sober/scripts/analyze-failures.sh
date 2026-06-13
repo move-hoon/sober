@@ -10,7 +10,7 @@ LIMIT="${1:-50}"
 case "$LIMIT" in
   ''|*[!0-9]*) LIMIT=50 ;;
 esac
-LOG_FILE="$HOME/.sober/logs/tool-failures.log"
+LOG_FILE="${SOBER_TOOL_FAILURE_LOG:-$HOME/.sober/logs/tool-failures.log}"
 
 if [ ! -f "$LOG_FILE" ]; then
   echo "✅ No failure logs found. Your tools are working perfectly!"

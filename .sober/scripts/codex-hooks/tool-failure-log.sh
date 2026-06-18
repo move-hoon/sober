@@ -11,18 +11,10 @@ command -v jq >/dev/null 2>&1 || exit 0
 printf '%s\n' "$INPUT" | jq -e . >/dev/null 2>&1 || exit 0
 
 STATUS=$(printf '%s' "$INPUT" | jq -r '
-  .tool_response.exit_code //
-  .tool_response.exitCode //
-  .tool_response.status //
-  .tool_response.code //
-  empty
+  (.tool_response | objects | .exit_code // .exitCode // .status // .code) // empty
 ')
 STDERR_MSG=$(printf '%s' "$INPUT" | jq -r '
-  .tool_response.stderr //
-  .tool_response.error //
-  .tool_response.message //
-  .error //
-  empty
+  ((.tool_response | objects | .stderr // .error // .message) // .error) // empty
 ')
 
 # If Codex does not expose a failure-shaped response, do not log a false failure.
